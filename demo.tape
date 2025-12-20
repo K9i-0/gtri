@@ -5,11 +5,11 @@ Output demo.gif
 
 Set FontSize 16
 Set Width 800
-Set Height 340
+Set Height 600
 Set Theme "Catppuccin Mocha"
 
 # Start gtri
-Type "gtri"
+Type "./gtri"
 Enter
 Sleep 2s
 
@@ -40,8 +40,6 @@ Tab
 Sleep 1.5s
 
 # Navigate branches
-Type "j"
-Sleep 0.8s
 Type "j"
 Sleep 0.8s
 Type "j"
