@@ -3,13 +3,17 @@ import { Box, Text } from "ink";
 interface StatusBarProps {
   message?: string | null;
   activeTab: "worktrees" | "create";
+  hasFilter?: boolean;
 }
 
-export function StatusBar({ message, activeTab }: StatusBarProps) {
+export function StatusBar({ message, activeTab, hasFilter }: StatusBarProps) {
   const worktreesHint =
     "[e]ditor [a]i [c]opy [d]elete [r]efresh [q]uit | j/k:move";
-  const createHint =
-    "[Enter] create [n]ew branch [r]efresh [q]uit | j/k:move";
+
+  // Createタブ用のヒントを親切に
+  const createHint = hasFilter
+    ? "[Enter] create [n]ew branch [Esc] clear filter [/] filter | j/k:move"
+    : "[Enter] create [n]ew branch [/] filter [r]efresh [q]uit | j/k:move g/G:top/bottom";
 
   return (
     <Box

@@ -4,6 +4,8 @@ import {
   listLocalBranches,
   getDefaultBranch,
   getCurrentBranch,
+  getBranchesLastCommits,
+  type CommitInfo,
 } from "../lib/gtr.ts";
 
 export interface BranchItem {
@@ -13,6 +15,7 @@ export interface BranchItem {
   isLocal: boolean;
   isRemote: boolean;
   hasWorktree: boolean;
+  lastCommit?: CommitInfo;
 }
 
 interface UseBranchesReturn {
@@ -102,6 +105,13 @@ export function useBranches(worktreeBranches: string[]): UseBranchesReturn {
           hasWorktree: wtBranches.some((wt) => wt === name || wt === remote),
         });
         seen.add(name);
+      }
+
+      // コミット情報を取得
+      const branchNames = items.map((b) => b.name);
+      const commits = await getBranchesLastCommits(branchNames);
+      for (const item of items) {
+        item.lastCommit = commits.get(item.name);
       }
 
       setBranches(items);

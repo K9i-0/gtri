@@ -181,3 +181,54 @@ export async function createWorktree(
     error: exitCode !== 0 ? stderr : undefined,
   };
 }
+
+export interface CommitInfo {
+  message: string;
+  date: string;
+  relativeDate: string;
+}
+
+export async function getBranchLastCommit(
+  branch: string
+): Promise<CommitInfo | null> {
+  const { stdout, exitCode } = await runGitCommand([
+    "log",
+    "-1",
+    "--format=%s\t%ci\t%cr",
+    branch,
+  ]);
+  if (exitCode !== 0 || !stdout) {
+    return null;
+  }
+  const [message, date, relativeDate] = stdout.split("\t");
+  return {
+    message: message || "",
+    date: date || "",
+    relativeDate: relativeDate || "",
+  };
+}
+
+export async function getBranchesLastCommits(
+  branches: string[]
+): Promise<Map<string, CommitInfo>> {
+  const results = new Map<string, CommitInfo>();
+
+  // バッチで取得（並列実行だが多すぎないように制限）
+  const batchSize = 10;
+  for (let i = 0; i < branches.length; i += batchSize) {
+    const batch = branches.slice(i, i + batchSize);
+    const commits = await Promise.all(
+      batch.map(async (branch) => {
+        const commit = await getBranchLastCommit(branch);
+        return { branch, commit };
+      })
+    );
+    for (const { branch, commit } of commits) {
+      if (commit) {
+        results.set(branch, commit);
+      }
+    }
+  }
+
+  return results;
+}

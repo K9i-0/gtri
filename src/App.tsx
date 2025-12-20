@@ -14,13 +14,14 @@ import { ConfirmDialog } from "./components/ConfirmDialog.tsx";
 import { createWorktree } from "./lib/gtr.ts";
 
 type Mode = "worktrees" | "create";
-type InputMode = "none" | "new-branch";
+type InputMode = "none" | "new-branch" | "filter";
 
 export function App() {
   const { exit } = useApp();
   const [mode, setMode] = useState<Mode>("worktrees");
   const [inputMode, setInputMode] = useState<InputMode>("none");
   const [newBranchName, setNewBranchName] = useState("");
+  const [branchFilter, setBranchFilter] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const statusTimeoutRef = useRef<Timer | null>(null);
 
@@ -50,10 +51,21 @@ export function App() {
   const { branches, loading: branchesLoading, refresh: refreshBranches } =
     useBranches(worktreeBranches);
 
+  // フィルタされたブランチ
+  const filteredBranches = useMemo(() => {
+    if (!branchFilter) return branches;
+    const lowerFilter = branchFilter.toLowerCase();
+    return branches.filter(
+      (b) =>
+        b.name.toLowerCase().includes(lowerFilter) ||
+        b.lastCommit?.message.toLowerCase().includes(lowerFilter)
+    );
+  }, [branches, branchFilter]);
+
   // Navigation for worktrees tab
   const worktreeNav = useNavigation(worktrees.length);
   // Navigation for create tab
-  const branchNav = useNavigation(branches.length);
+  const branchNav = useNavigation(filteredBranches.length);
 
   const {
     confirmDelete,
@@ -83,6 +95,29 @@ export function App() {
 
   useInput((input, key) => {
     if (loading || executing) return;
+
+    // Filter mode input handling
+    if (inputMode === "filter") {
+      if (key.escape) {
+        setInputMode("none");
+        setBranchFilter("");
+        return;
+      }
+      if (key.return) {
+        setInputMode("none");
+        // フィルターは維持したまま
+        return;
+      }
+      if (key.backspace || key.delete) {
+        setBranchFilter((prev) => prev.slice(0, -1));
+        return;
+      }
+      // 通常の文字入力
+      if (input && !key.ctrl && !key.meta) {
+        setBranchFilter((prev) => prev + input);
+      }
+      return;
+    }
 
     // Input mode for new branch name
     if (inputMode === "new-branch") {
@@ -193,7 +228,21 @@ export function App() {
       return;
     }
 
-    const selected = branches[branchNav.selectedIndex];
+    // /: Start filter mode
+    if (input === "/") {
+      setInputMode("filter");
+      setBranchFilter("");
+      return;
+    }
+
+    // Escape: Clear filter (when not in filter mode)
+    if (branchFilter && key.escape) {
+      setBranchFilter("");
+      branchNav.moveToTop();
+      return;
+    }
+
+    const selected = filteredBranches[branchNav.selectedIndex];
     if (!selected) return;
 
     // Enter: Create worktree from selected branch
@@ -216,6 +265,7 @@ export function App() {
     // r: Refresh
     if (input === "r") {
       refreshBranches();
+      setBranchFilter("");
       return;
     }
   };
@@ -225,7 +275,7 @@ export function App() {
       setInputMode("none");
       return;
     }
-    const selected = branches[branchNav.selectedIndex];
+    const selected = filteredBranches[branchNav.selectedIndex];
     if (selected) {
       handleCreateWorktree(name.trim(), selected.name);
     }
@@ -274,17 +324,28 @@ export function App() {
         </>
       ) : (
         <>
+          {/* フィルター入力モード */}
+          {inputMode === "filter" && (
+            <Box marginBottom={1}>
+              <Text color="yellow">/ </Text>
+              <Text color="cyan">{branchFilter}</Text>
+              <Text color="cyan">▌</Text>
+              <Text dimColor> (Enter to confirm, Esc to cancel)</Text>
+            </Box>
+          )}
+
           {branchesLoading ? (
             <Text>Loading branches...</Text>
           ) : (
             <BranchList
-              branches={branches}
+              branches={filteredBranches}
               selectedIndex={branchNav.selectedIndex}
+              filter={branchFilter && inputMode !== "filter" ? branchFilter : undefined}
             />
           )}
           {inputMode === "new-branch" && (
             <BranchInput
-              baseBranch={branches[branchNav.selectedIndex]?.name || ""}
+              baseBranch={filteredBranches[branchNav.selectedIndex]?.name || ""}
               value={newBranchName}
               onChange={setNewBranchName}
               onSubmit={handleNewBranchSubmit}
@@ -293,7 +354,11 @@ export function App() {
         </>
       )}
 
-      <StatusBar message={statusMessage || message} activeTab={mode} />
+      <StatusBar
+        message={statusMessage || message}
+        activeTab={mode}
+        hasFilter={!!branchFilter}
+      />
     </Box>
   );
 }
