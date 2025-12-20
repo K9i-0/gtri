@@ -32,15 +32,12 @@ export async function checkGtrExists(): Promise<boolean> {
   return exitCode === 0;
 }
 
-export async function listWorktrees(): Promise<Worktree[]> {
-  const { stdout, exitCode } = await runCommand(["list", "--porcelain"]);
-
-  if (exitCode !== 0 || !stdout) {
-    return [];
-  }
-
-  const lines = stdout.split("\n").filter((line) => line.length > 0);
-  const worktrees: Worktree[] = [];
+// パース処理（テスト可能な純粋関数）
+export function parseWorktreeOutput(
+  output: string
+): Omit<Worktree, "shortHash">[] {
+  const lines = output.split("\n").filter((line) => line.length > 0);
+  const worktrees: Omit<Worktree, "shortHash">[] = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -52,15 +49,30 @@ export async function listWorktrees(): Promise<Worktree[]> {
     const [path, branch, status] = parts;
     if (!path || !branch) continue;
 
-    const shortHash = await getShortHash(path);
-
     worktrees.push({
       path,
       branch,
       status: (status as Worktree["status"]) || "ok",
       isMain: i === 0,
-      shortHash,
     });
+  }
+
+  return worktrees;
+}
+
+export async function listWorktrees(): Promise<Worktree[]> {
+  const { stdout, exitCode } = await runCommand(["list", "--porcelain"]);
+
+  if (exitCode !== 0 || !stdout) {
+    return [];
+  }
+
+  const parsed = parseWorktreeOutput(stdout);
+  const worktrees: Worktree[] = [];
+
+  for (const wt of parsed) {
+    const shortHash = await getShortHash(wt.path);
+    worktrees.push({ ...wt, shortHash });
   }
 
   return worktrees;
