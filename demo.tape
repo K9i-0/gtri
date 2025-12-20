@@ -13,9 +13,9 @@ Type "gtri"
 Enter
 Sleep 2s
 
+# === Worktrees Tab ===
+
 # Navigate down with j
-Type "j"
-Sleep 0.8s
 Type "j"
 Sleep 0.8s
 Type "j"
@@ -24,29 +24,35 @@ Sleep 0.8s
 # Navigate up with k
 Type "k"
 Sleep 0.8s
-Type "k"
-Sleep 0.8s
-
-# Jump to bottom with G
-Type "G"
-Sleep 1s
-
-# Jump to top with g
-Type "g"
-Sleep 1s
-
-# Select by number
-Type "3"
-Sleep 1s
 
 # Copy path to clipboard
 Type "c"
 Sleep 1.5s
 
-# Navigate and copy AI command
+# Copy AI command
+Type "a"
+Sleep 1.5s
+
+# === Create Tab ===
+
+# Switch to Create tab
+Tab
+Sleep 1.5s
+
+# Navigate branches
 Type "j"
 Sleep 0.8s
-Type "a"
+Type "j"
+Sleep 0.8s
+Type "j"
+Sleep 0.8s
+
+# Navigate up
+Type "k"
+Sleep 0.8s
+
+# Switch back to Worktrees tab
+Tab
 Sleep 1.5s
 
 # Refresh list

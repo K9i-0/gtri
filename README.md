@@ -1,5 +1,7 @@
 # gtri
 
+[日本語](README.ja.md)
+
 > Interactive TUI for [git-worktree-runner](https://github.com/coderabbitai/git-worktree-runner)
 
 ![gtri demo](demo.gif)
@@ -8,7 +10,9 @@
 
 - Vim/Emacs-style keybindings (j/k, Ctrl+N/P)
 - Quick worktree navigation and management
+- Create worktrees from branches (Create tab)
 - Editor and AI tool integration
+- Self-update functionality
 
 ## Installation
 
@@ -35,13 +39,19 @@ bun run build
 
 ```bash
 cd your-git-repo
-gtri
+gtri              # Launch interactive TUI
+gtri update       # Update to the latest version
+gtri version      # Show version
+gtri help         # Show help
 ```
 
 ## Keybindings
 
+### Worktrees Tab
+
 | Key | Action |
 |-----|--------|
+| `Tab` | Switch to Create tab |
 | `j` / `↓` / `Ctrl+N` | Move down |
 | `k` / `↑` / `Ctrl+P` | Move up |
 | `g` / `Ctrl+A` | Go to top |
@@ -51,6 +61,18 @@ gtri
 | `a` | Copy AI command to clipboard |
 | `c` | Copy worktree path |
 | `d` | Delete worktree |
+| `r` | Refresh list |
+| `q` / `Esc` | Quit |
+
+### Create Tab
+
+| Key | Action |
+|-----|--------|
+| `Tab` | Switch to Worktrees tab |
+| `j` / `↓` / `Ctrl+N` | Move down |
+| `k` / `↑` / `Ctrl+P` | Move up |
+| `Enter` | Create worktree from selected branch |
+| `n` | Create new branch + worktree |
 | `r` | Refresh list |
 | `q` / `Esc` | Quit |
 
