@@ -5,7 +5,7 @@ Output demo.gif
 
 Set FontSize 16
 Set Width 800
-Set Height 450
+Set Height 340
 Set Theme "Catppuccin Mocha"
 
 # Start gtri
