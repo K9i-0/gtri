@@ -11,7 +11,7 @@ export function StatusBar({ message }: StatusBarProps) {
         <Text color="green">{message}</Text>
       ) : (
         <Text dimColor>
-          [e]ditor [a]i [c]opy [d]elete [r]efresh [q]uit | j/k:move g/G:top/bottom 1-9:select
+          [e]ditor [a]i [c]opy [d]elete [r]efresh [q]uit | ^n/^p or j/k:move ^a/^e:top/bottom
         </Text>
       )}
     </Box>

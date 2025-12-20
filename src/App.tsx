@@ -43,19 +43,19 @@ export function App() {
     }
 
     // Navigation
-    if (input === "j" || key.downArrow) {
+    if (input === "j" || key.downArrow || (key.ctrl && input === "n")) {
       moveDown();
       return;
     }
-    if (input === "k" || key.upArrow) {
+    if (input === "k" || key.upArrow || (key.ctrl && input === "p")) {
       moveUp();
       return;
     }
-    if (input === "g") {
+    if (input === "g" || (key.ctrl && input === "a")) {
       moveToTop();
       return;
     }
-    if (input === "G") {
+    if (input === "G" || (key.ctrl && input === "e")) {
       moveToBottom();
       return;
     }
