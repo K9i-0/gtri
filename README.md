@@ -12,6 +12,12 @@
 
 ## Installation
 
+### Quick Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/K9i-0/gtri/main/install.sh | bash
+```
+
 ### Download Binary
 
 Download the latest binary from [GitHub Releases](https://github.com/K9i-0/gtri/releases).
