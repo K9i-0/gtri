@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import type { Worktree } from "../types/worktree.ts";
-import { openEditor, startAi, removeWorktree } from "../lib/gtr.ts";
+import { openEditor, getAiCommand, removeWorktree } from "../lib/gtr.ts";
 import { copyToClipboard } from "../lib/clipboard.ts";
 
 interface UseActionsReturn {
@@ -25,20 +25,17 @@ export function useActions(): UseActionsReturn {
   }, []);
 
   const executeEditor = useCallback(async (worktree: Worktree) => {
-    setExecuting(true);
-    try {
-      await openEditor(worktree.branch);
-    } finally {
-      setExecuting(false);
-    }
+    await openEditor(worktree.branch);
+    setMessage(`Opening editor: ${worktree.branch}`);
+    setTimeout(() => setMessage(null), 2000);
   }, []);
 
   const executeAi = useCallback(async (worktree: Worktree) => {
-    setExecuting(true);
-    try {
-      await startAi(worktree.branch);
-    } finally {
-      setExecuting(false);
+    const command = await getAiCommand(worktree.branch);
+    if (command) {
+      await copyToClipboard(command);
+      setMessage(`Copied! Press Cmd+D, Cmd+V, Enter`);
+      setTimeout(() => setMessage(null), 5000);
     }
   }, []);
 

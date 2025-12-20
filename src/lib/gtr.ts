@@ -87,20 +87,17 @@ export async function getConfig(): Promise<GtrConfig> {
 }
 
 export async function openEditor(branch: string): Promise<void> {
-  const proc = Bun.spawn(["git", "gtr", "editor", branch], {
-    stdout: "inherit",
-    stderr: "inherit",
+  // エディタをバックグラウンドで起動（終了を待たない）
+  Bun.spawn(["git", "gtr", "editor", branch], {
+    stdout: "ignore",
+    stderr: "ignore",
   });
-  await proc.exited;
 }
 
-export async function startAi(branch: string): Promise<void> {
-  const proc = Bun.spawn(["git", "gtr", "ai", branch], {
-    stdout: "inherit",
-    stderr: "inherit",
-    stdin: "inherit",
-  });
-  await proc.exited;
+export async function getAiCommand(branch: string): Promise<string | null> {
+  const path = await getWorktreePath(branch);
+  if (!path) return null;
+  return `cd "${path}" && git gtr ai "${branch}"`;
 }
 
 export async function removeWorktree(branch: string): Promise<boolean> {
