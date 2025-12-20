@@ -2,7 +2,7 @@
 
 > Interactive TUI for [git-worktree-runner](https://github.com/coderabbitai/git-worktree-runner)
 
-<!-- TODO: Add demo GIF -->
+![gtri demo](demo.gif)
 
 ## Features
 
