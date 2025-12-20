@@ -9,7 +9,7 @@ import { ConfirmDialog } from "./components/ConfirmDialog.tsx";
 
 export function App() {
   const { exit } = useApp();
-  const { worktrees, config, loading, error, refresh } = useWorktrees();
+  const { worktrees, config, mainBranch, loading, error, refresh } = useWorktrees();
   const { selectedIndex, moveUp, moveDown, moveToTop, moveToBottom, selectIndex } =
     useNavigation(worktrees.length);
   const {
@@ -112,7 +112,7 @@ export function App() {
   if (worktrees.length === 0) {
     return (
       <Box flexDirection="column">
-        <Header config={config} />
+        <Header config={config} mainBranch={mainBranch} />
         <Text>No worktrees found.</Text>
         <Text dimColor>Use 'git gtr new &lt;branch&gt;' to create one.</Text>
       </Box>
@@ -121,7 +121,7 @@ export function App() {
 
   return (
     <Box flexDirection="column">
-      <Header config={config} />
+      <Header config={config} mainBranch={mainBranch} />
       <WorktreeList worktrees={worktrees} selectedIndex={selectedIndex} />
       {confirmDelete && <ConfirmDialog worktree={confirmDelete} />}
       <StatusBar message={message} />

@@ -3,9 +3,10 @@ import type { GtrConfig } from "../types/worktree.ts";
 
 interface HeaderProps {
   config: GtrConfig;
+  mainBranch: string;
 }
 
-export function Header({ config }: HeaderProps) {
+export function Header({ config, mainBranch }: HeaderProps) {
   return (
     <Box
       flexDirection="column"
@@ -17,7 +18,7 @@ export function Header({ config }: HeaderProps) {
         gtri - Git Worktree Manager
       </Text>
       <Text dimColor>
-        Editor: {config.editor} | AI: {config.ai}
+        Editor: {config.editor} | AI: {config.ai} | Main repo: {mainBranch}
       </Text>
     </Box>
   );

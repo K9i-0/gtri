@@ -109,3 +109,8 @@ export async function getWorktreePath(branch: string): Promise<string | null> {
   const { stdout, exitCode } = await runCommand(["go", branch]);
   return exitCode === 0 ? stdout : null;
 }
+
+export async function getCurrentBranch(): Promise<string> {
+  const { stdout, exitCode } = await runGitCommand(["branch", "--show-current"]);
+  return exitCode === 0 && stdout ? stdout : "unknown";
+}
