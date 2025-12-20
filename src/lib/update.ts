@@ -38,7 +38,7 @@ async function getLatestRelease(): Promise<GitHubRelease> {
     throw new Error(`Failed to fetch release: ${response.statusText}`);
   }
 
-  return response.json();
+  return response.json() as Promise<GitHubRelease>;
 }
 
 function compareVersions(current: string, latest: string): number {
