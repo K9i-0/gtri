@@ -1,14 +1,28 @@
 {
   "name": "gtri",
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "description": "Interactive TUI for git-worktree-runner",
   "module": "src/index.tsx",
   "type": "module",
-  "private": true,
   "scripts": {
     "dev": "bun run src/index.tsx",
     "build": "bun build src/index.tsx --compile --outfile gtri",
+    "build:all": "bun run build:darwin-arm64 && bun run build:darwin-x64 && bun run build:linux-x64",
+    "build:darwin-arm64": "bun build src/index.tsx --compile --target=bun-darwin-arm64 --outfile dist/gtri-darwin-arm64",
+    "build:darwin-x64": "bun build src/index.tsx --compile --target=bun-darwin-x64 --outfile dist/gtri-darwin-x64",
+    "build:linux-x64": "bun build src/index.tsx --compile --target=bun-linux-x64 --outfile dist/gtri-linux-x64",
     "typecheck": "tsc --noEmit"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/K9i-0/gtri.git"
+  },
+  "author": "K9i-0",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/K9i-0/gtri/issues"
+  },
+  "homepage": "https://github.com/K9i-0/gtri#readme",
   "devDependencies": {
     "@types/bun": "latest",
     "@types/react": "^19.2.7"
