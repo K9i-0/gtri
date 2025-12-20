@@ -126,3 +126,58 @@ export async function getCurrentBranch(): Promise<string> {
   const { stdout, exitCode } = await runGitCommand(["branch", "--show-current"]);
   return exitCode === 0 && stdout ? stdout : "unknown";
 }
+
+export async function getDefaultBranch(): Promise<string> {
+  const { stdout, exitCode } = await runGitCommand([
+    "symbolic-ref",
+    "refs/remotes/origin/HEAD",
+    "--short",
+  ]);
+  if (exitCode === 0 && stdout) {
+    // "origin/main" -> "main"
+    return stdout.replace(/^origin\//, "");
+  }
+  return "main";
+}
+
+export async function listRemoteBranches(): Promise<string[]> {
+  const { stdout, exitCode } = await runGitCommand([
+    "branch",
+    "-r",
+    "--format=%(refname:short)",
+  ]);
+  if (exitCode !== 0 || !stdout) {
+    return [];
+  }
+  return stdout
+    .split("\n")
+    .filter((b) => b && b.includes("/") && !b.includes("HEAD"));
+}
+
+export async function listLocalBranches(): Promise<string[]> {
+  const { stdout, exitCode } = await runGitCommand([
+    "branch",
+    "--format=%(refname:short)",
+  ]);
+  if (exitCode !== 0 || !stdout) {
+    return [];
+  }
+  return stdout.split("\n").filter((b) => b);
+}
+
+export async function createWorktree(
+  branch: string,
+  options?: { from?: string }
+): Promise<{ success: boolean; error?: string }> {
+  const args = ["new", branch];
+  if (options?.from) {
+    args.push("--from", options.from);
+  }
+  args.push("--yes");
+
+  const { exitCode, stderr } = await runCommand(args);
+  return {
+    success: exitCode === 0,
+    error: exitCode !== 0 ? stderr : undefined,
+  };
+}
