@@ -21,7 +21,10 @@ export function useWorktrees(): UseWorktreesReturn {
     setError(null);
     try {
       const [wts, cfg] = await Promise.all([listWorktrees(), getConfig()]);
-      setWorktrees(wts);
+      const filteredWts = wts.filter(
+        (wt) => !wt.isMain && wt.branch !== "(detached)"
+      );
+      setWorktrees(filteredWts);
       setConfig(cfg);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unknown error");
