@@ -28,9 +28,9 @@ export function WorktreeItem({ worktree, isSelected, index, prLoading }: Worktre
 
   // PRのstateに応じた色
   const stateColor =
-    worktree.prInfo?.state === "open"
+    worktree.prInfo?.state === "OPEN"
       ? "green"
-      : worktree.prInfo?.state === "merged"
+      : worktree.prInfo?.state === "MERGED"
         ? "magenta"
         : "red";
 
@@ -54,15 +54,14 @@ export function WorktreeItem({ worktree, isSelected, index, prLoading }: Worktre
       {/* PR情報の行 - PRがある場合のみ表示 */}
       {prLoading && !worktree.prInfo ? (
         <Box marginLeft={4}>
-          <Text dimColor color="yellow">Loading PR info...</Text>
+          <Text color="yellow">Loading PR...</Text>
         </Box>
       ) : worktree.prInfo ? (
         <Box marginLeft={4}>
-          <Text color="cyan">PR #{worktree.prInfo.number}</Text>
-          <Text dimColor>: </Text>
-          <Text>{prTitle}</Text>
-          <Text dimColor> </Text>
           <Text color={stateColor}>[{worktree.prInfo.state}]</Text>
+          <Text dimColor> </Text>
+          <Text color="cyan">#{worktree.prInfo.number}</Text>
+          <Text dimColor> {prTitle}</Text>
         </Box>
       ) : null}
     </Box>

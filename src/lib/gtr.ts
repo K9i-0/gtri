@@ -71,8 +71,11 @@ export async function listWorktrees(): Promise<Worktree[]> {
   const worktrees: Worktree[] = [];
 
   for (const wt of parsed) {
-    const shortHash = await getShortHash(wt.path);
-    worktrees.push({ ...wt, shortHash });
+    const [shortHash, upstreamBranch] = await Promise.all([
+      getShortHash(wt.path),
+      getUpstreamBranch(wt.branch),
+    ]);
+    worktrees.push({ ...wt, shortHash, upstreamBranch });
   }
 
   return worktrees;
@@ -84,6 +87,19 @@ async function getShortHash(worktreePath: string): Promise<string | undefined> {
     worktreePath
   );
   return exitCode === 0 ? stdout : undefined;
+}
+
+async function getUpstreamBranch(branch: string): Promise<string | undefined> {
+  const { stdout, exitCode } = await runGitCommand([
+    "config",
+    "--get",
+    `branch.${branch}.merge`,
+  ]);
+  if (exitCode !== 0 || !stdout) {
+    return undefined;
+  }
+  // refs/heads/feature/hoge -> feature/hoge
+  return stdout.replace(/^refs\/heads\//, "");
 }
 
 export async function getConfig(): Promise<GtrConfig> {
@@ -212,6 +228,8 @@ export async function getPRInfo(branch: string): Promise<PRInfo | null> {
     "list",
     "--head",
     branch,
+    "--state",
+    "all",
     "--json",
     "number,title,url,state",
     "--limit",

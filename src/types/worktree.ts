@@ -2,12 +2,13 @@ export interface PRInfo {
   number: number;
   title: string;
   url: string;
-  state: "open" | "closed" | "merged";
+  state: "OPEN" | "CLOSED" | "MERGED";
 }
 
 export interface Worktree {
   path: string;
   branch: string;
+  upstreamBranch?: string;
   status: "ok" | "detached" | "locked" | "prunable" | "missing";
   isMain: boolean;
   shortHash?: string;

@@ -46,15 +46,15 @@ export function useWorktrees(): UseWorktreesReturn {
       setMainBranch(branch);
       setGhAvailable(ghExists);
 
-      // PR情報を非同期で取得
+      // PR情報を非同期で取得（上流ブランチ名を使用）
       if (ghExists && filteredWts.length > 0) {
         setPrLoading(true);
-        const branches = filteredWts.map((wt) => wt.branch);
+        const branches = filteredWts.map((wt) => wt.upstreamBranch || wt.branch);
         getPRInfoBatch(branches).then((prMap) => {
           setWorktrees((prev) =>
             prev.map((wt) => ({
               ...wt,
-              prInfo: prMap.get(wt.branch),
+              prInfo: prMap.get(wt.upstreamBranch || wt.branch),
             }))
           );
           setPrLoading(false);
