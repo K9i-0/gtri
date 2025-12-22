@@ -231,7 +231,7 @@ export async function getPRInfo(branch: string): Promise<PRInfo | null> {
     "--state",
     "all",
     "--json",
-    "number,title,url,state",
+    "number,title,url,state,author",
     "--limit",
     "1",
   ]);

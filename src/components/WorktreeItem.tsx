@@ -1,4 +1,5 @@
 import { Box, Text } from "ink";
+import Link from "ink-link";
 import type { Worktree } from "../types/worktree.ts";
 
 interface WorktreeItemProps {
@@ -60,7 +61,13 @@ export function WorktreeItem({ worktree, isSelected, index, prLoading }: Worktre
         <Box marginLeft={4}>
           <Text color={stateColor}>[{worktree.prInfo.state}]</Text>
           <Text dimColor> </Text>
-          <Text color="cyan">#{worktree.prInfo.number}</Text>
+          <Link url={worktree.prInfo.url}>
+            <Text color="cyan">#{worktree.prInfo.number}</Text>
+          </Link>
+          <Text dimColor> </Text>
+          <Link url={`https://github.com/${worktree.prInfo.author.login}`}>
+            <Text color="yellow">@{worktree.prInfo.author.login}</Text>
+          </Link>
           <Text dimColor> {prTitle}</Text>
         </Box>
       ) : null}

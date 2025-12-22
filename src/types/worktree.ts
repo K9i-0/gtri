@@ -1,8 +1,13 @@
+export interface PRAuthor {
+  login: string;
+}
+
 export interface PRInfo {
   number: number;
   title: string;
   url: string;
   state: "OPEN" | "CLOSED" | "MERGED";
+  author: PRAuthor;
 }
 
 export interface Worktree {
