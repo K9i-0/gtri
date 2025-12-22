@@ -7,7 +7,7 @@ interface StatusBarProps {
 
 export function StatusBar({ message, activeTab }: StatusBarProps) {
   const worktreesHint =
-    "[e]ditor [a]i [c]opy [d]elete [r]efresh [q]uit | j/k:move";
+    "[e]ditor [a]i [c]opy [d]elete [p]r [r]efresh [q]uit | j/k:move";
   const createHint =
     "[Enter] create [n]ew branch [r]efresh [q]uit | j/k:move";
 

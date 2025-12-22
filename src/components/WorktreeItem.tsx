@@ -5,9 +5,10 @@ interface WorktreeItemProps {
   worktree: Worktree;
   isSelected: boolean;
   index: number;
+  prLoading?: boolean;
 }
 
-export function WorktreeItem({ worktree, isSelected, index }: WorktreeItemProps) {
+export function WorktreeItem({ worktree, isSelected, index, prLoading }: WorktreeItemProps) {
   const icon = worktree.isMain ? "★" : "○";
   const iconColor = worktree.isMain ? "yellow" : "blue";
   const cursor = isSelected ? "❯" : " ";
@@ -16,6 +17,22 @@ export function WorktreeItem({ worktree, isSelected, index }: WorktreeItemProps)
     process.env.HOME || "",
     "~"
   );
+
+  // PRタイトルを切り捨て
+  const maxTitleLength = 40;
+  const prTitle = worktree.prInfo?.title
+    ? worktree.prInfo.title.length > maxTitleLength
+      ? worktree.prInfo.title.substring(0, maxTitleLength - 3) + "..."
+      : worktree.prInfo.title
+    : null;
+
+  // PRのstateに応じた色
+  const stateColor =
+    worktree.prInfo?.state === "open"
+      ? "green"
+      : worktree.prInfo?.state === "merged"
+        ? "magenta"
+        : "red";
 
   return (
     <Box flexDirection="column" marginBottom={1}>
@@ -34,6 +51,20 @@ export function WorktreeItem({ worktree, isSelected, index }: WorktreeItemProps)
       <Box marginLeft={4}>
         <Text dimColor>{homePath}</Text>
       </Box>
+      {/* PR情報の行 - PRがある場合のみ表示 */}
+      {prLoading && !worktree.prInfo ? (
+        <Box marginLeft={4}>
+          <Text dimColor color="yellow">Loading PR info...</Text>
+        </Box>
+      ) : worktree.prInfo ? (
+        <Box marginLeft={4}>
+          <Text color="cyan">PR #{worktree.prInfo.number}</Text>
+          <Text dimColor>: </Text>
+          <Text>{prTitle}</Text>
+          <Text dimColor> </Text>
+          <Text color={stateColor}>[{worktree.prInfo.state}]</Text>
+        </Box>
+      ) : null}
     </Box>
   );
 }

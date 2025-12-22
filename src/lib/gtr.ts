@@ -1,4 +1,4 @@
-import type { Worktree, GtrConfig } from "../types/worktree.ts";
+import type { Worktree, GtrConfig, PRInfo } from "../types/worktree.ts";
 
 async function runCommand(
   args: string[]
@@ -180,4 +180,77 @@ export async function createWorktree(
     success: exitCode === 0,
     error: exitCode !== 0 ? stderr : undefined,
   };
+}
+
+// gh コマンドを実行するヘルパー関数
+async function runGhCommand(
+  args: string[]
+): Promise<{ stdout: string; exitCode: number }> {
+  const proc = Bun.spawn(["gh", ...args], {
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  const stdout = await new Response(proc.stdout).text();
+  const exitCode = await proc.exited;
+  return { stdout: stdout.trim(), exitCode };
+}
+
+// gh CLI が利用可能かチェック
+export async function checkGhExists(): Promise<boolean> {
+  const proc = Bun.spawn(["gh", "auth", "status"], {
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  const exitCode = await proc.exited;
+  return exitCode === 0;
+}
+
+// ブランチに対応する PR 情報を取得
+export async function getPRInfo(branch: string): Promise<PRInfo | null> {
+  const { stdout, exitCode } = await runGhCommand([
+    "pr",
+    "list",
+    "--head",
+    branch,
+    "--json",
+    "number,title,url,state",
+    "--limit",
+    "1",
+  ]);
+
+  if (exitCode !== 0 || !stdout) {
+    return null;
+  }
+
+  try {
+    const prs = JSON.parse(stdout) as PRInfo[];
+    return prs.length > 0 ? prs[0] : null;
+  } catch {
+    return null;
+  }
+}
+
+// 複数ブランチの PR 情報を並列取得
+export async function getPRInfoBatch(
+  branches: string[]
+): Promise<Map<string, PRInfo>> {
+  const results = new Map<string, PRInfo>();
+
+  const prInfoPromises = branches.map(async (branch) => {
+    const prInfo = await getPRInfo(branch);
+    if (prInfo) {
+      results.set(branch, prInfo);
+    }
+  });
+
+  await Promise.all(prInfoPromises);
+  return results;
+}
+
+// PR をブラウザで開く
+export async function openPRInBrowser(url: string): Promise<void> {
+  Bun.spawn(["open", url], {
+    stdout: "ignore",
+    stderr: "ignore",
+  });
 }

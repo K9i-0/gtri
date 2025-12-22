@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import type { Worktree } from "../types/worktree.ts";
-import { openEditor, getAiCommand, removeWorktree } from "../lib/gtr.ts";
+import { openEditor, getAiCommand, removeWorktree, openPRInBrowser } from "../lib/gtr.ts";
 import { copyToClipboard } from "../lib/clipboard.ts";
 
 interface UseActionsReturn {
@@ -12,6 +12,7 @@ interface UseActionsReturn {
   executeAi: (worktree: Worktree) => Promise<void>;
   executeCopy: (worktree: Worktree) => Promise<void>;
   executeDelete: (worktree: Worktree) => Promise<boolean>;
+  executePR: (worktree: Worktree) => Promise<void>;
   clearMessage: () => void;
 }
 
@@ -68,6 +69,18 @@ export function useActions(): UseActionsReturn {
     }
   }, []);
 
+  const executePR = useCallback(async (worktree: Worktree) => {
+    if (!worktree.prInfo) {
+      setMessage(`No PR found for branch: ${worktree.branch}`);
+      setTimeout(() => setMessage(null), 2000);
+      return;
+    }
+
+    await openPRInBrowser(worktree.prInfo.url);
+    setMessage(`Opening PR #${worktree.prInfo.number}`);
+    setTimeout(() => setMessage(null), 2000);
+  }, []);
+
   return {
     confirmDelete,
     setConfirmDelete,
@@ -77,6 +90,7 @@ export function useActions(): UseActionsReturn {
     executeAi,
     executeCopy,
     executeDelete,
+    executePR,
     clearMessage,
   };
 }
