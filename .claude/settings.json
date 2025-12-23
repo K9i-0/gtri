@@ -1,0 +1,36 @@
+{
+  "enabledPlugins": {
+    "typescript-lsp@claude-plugins-official": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(bun init:*)",
+      "Bash(bun add:*)",
+      "Bash(bun run typecheck:*)",
+      "Bash(bun run build:*)",
+      "Bash(bun run:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(git push:*)",
+      "Bash(ls:*)",
+      "Bash(bun test:*)",
+      "Bash(grep:*)",
+      "Bash(git branch:*)",
+      "Bash(./scripts/setup-test-branches.sh:*)",
+      "Bash(chmod:*)",
+      "Bash(./gtri help:*)",
+      "Bash(git tag:*)",
+      "Bash(gh run view:*)",
+      "Bash(bun install)",
+      "Bash(bun:*)",
+      "Bash(vhs:*)",
+      "Bash(git gtr:*)",
+      "Bash(xxd:*)",
+      "Bash(git checkout:*)"
+    ]
+  }
+}
