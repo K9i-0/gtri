@@ -242,7 +242,7 @@ export async function getPRInfo(branch: string): Promise<PRInfo | null> {
 
   try {
     const prs = JSON.parse(stdout) as PRInfo[];
-    return prs.length > 0 ? prs[0] : null;
+    return prs[0] ?? null;
   } catch {
     return null;
   }
