@@ -122,8 +122,19 @@ export async function openEditor(branch: string): Promise<void> {
   });
 }
 
+export async function getMainRepoPath(): Promise<string | null> {
+  const { stdout, exitCode } = await runCommand(["list", "--porcelain"]);
+  if (exitCode !== 0 || !stdout) return null;
+
+  const firstLine = stdout.split("\n")[0];
+  if (!firstLine) return null;
+
+  const path = firstLine.split("\t")[0];
+  return path || null;
+}
+
 export async function getAiCommand(branch: string): Promise<string | null> {
-  const path = await getWorktreePath(branch);
+  const path = await getMainRepoPath();
   if (!path) return null;
   return `cd "${path}" && git gtr ai "${branch}"`;
 }
