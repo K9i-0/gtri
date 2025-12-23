@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-12-24
+
+### Added
+
+- PR information display in worktree tab (author, status, clickable links)
+- Worktree environment setup with mise install support
+- postCreate hook for automatic environment configuration
+
+### Changed
+
+- Remove Create tab feature
+- Use main repo path instead of worktree path for AI tools
+
+### Fixed
+
+- Use upstream branch for PR lookup
+- Handle noUncheckedIndexedAccess in getPRInfo
+- Use correct [hooks] section format in gtrconfig
+
 ## [1.1.0] - 2025-12-20
 
 ### Added
