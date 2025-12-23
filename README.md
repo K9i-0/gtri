@@ -10,7 +10,6 @@
 
 - Vim/Emacs-style keybindings (j/k, Ctrl+N/P)
 - Quick worktree navigation and management
-- Create worktrees from branches (Create tab)
 - Editor and AI tool integration
 - Self-update functionality
 
@@ -47,11 +46,8 @@ gtri help         # Show help
 
 ## Keybindings
 
-### Worktrees Tab
-
 | Key | Action |
 |-----|--------|
-| `Tab` | Switch to Create tab |
 | `j` / `↓` / `Ctrl+N` | Move down |
 | `k` / `↑` / `Ctrl+P` | Move up |
 | `g` / `Ctrl+A` | Go to top |
@@ -61,18 +57,7 @@ gtri help         # Show help
 | `a` | Copy AI command to clipboard |
 | `c` | Copy worktree path |
 | `d` | Delete worktree |
-| `r` | Refresh list |
-| `q` / `Esc` | Quit |
-
-### Create Tab
-
-| Key | Action |
-|-----|--------|
-| `Tab` | Switch to Worktrees tab |
-| `j` / `↓` / `Ctrl+N` | Move down |
-| `k` / `↑` / `Ctrl+P` | Move up |
-| `Enter` | Create worktree from selected branch |
-| `n` | Create new branch + worktree |
+| `p` | Open PR in browser |
 | `r` | Refresh list |
 | `q` / `Esc` | Quit |
 
