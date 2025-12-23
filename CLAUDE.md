@@ -109,3 +109,10 @@ bun --hot ./index.ts
 ```
 
 For more information, read the Bun API docs in `node_modules/bun-types/docs/**.md`.
+
+## Development Workflow
+
+1. ブランチを切ってから作業を始める
+2. testや型チェックを行う (`bun run typecheck && bun test`)
+3. ビルドしたうえで動作確認を依頼 (`bun run build`)
+4. PRの作成まで行う
