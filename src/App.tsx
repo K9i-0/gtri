@@ -1,26 +1,15 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import { useWorktrees } from "./hooks/useWorktrees.ts";
-import { useBranches } from "./hooks/useBranches.ts";
 import { useNavigation } from "./hooks/useNavigation.ts";
 import { useActions } from "./hooks/useActions.ts";
 import { Header } from "./components/Header.tsx";
-import { TabBar } from "./components/TabBar.tsx";
 import { WorktreeList } from "./components/WorktreeList.tsx";
-import { BranchList } from "./components/BranchList.tsx";
-import { BranchInput } from "./components/BranchInput.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
 import { ConfirmDialog } from "./components/ConfirmDialog.tsx";
-import { createWorktree } from "./lib/gtr.ts";
-
-type Mode = "worktrees" | "create";
-type InputMode = "none" | "new-branch";
 
 export function App() {
   const { exit } = useApp();
-  const [mode, setMode] = useState<Mode>("worktrees");
-  const [inputMode, setInputMode] = useState<InputMode>("none");
-  const [newBranchName, setNewBranchName] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const statusTimeoutRef = useRef<Timer | null>(null);
 
@@ -43,17 +32,9 @@ export function App() {
 
   const { worktrees, config, mainBranch, loading, prLoading, error, refresh } =
     useWorktrees();
-  const worktreeBranches = useMemo(
-    () => worktrees.map((wt) => wt.branch),
-    [worktrees]
-  );
-  const { branches, loading: branchesLoading, refresh: refreshBranches } =
-    useBranches(worktreeBranches);
 
-  // Navigation for worktrees tab
+  // Navigation for worktrees
   const worktreeNav = useNavigation(worktrees.length);
-  // Navigation for create tab
-  const branchNav = useNavigation(branches.length);
 
   const {
     confirmDelete,
@@ -67,32 +48,8 @@ export function App() {
     executePR,
   } = useActions();
 
-  const handleCreateWorktree = async (branch: string, from?: string) => {
-    // origin/xxx -> xxx (strip origin/ prefix for worktree name)
-    const branchName = branch.replace(/^origin\//, "");
-    setStatusMessage(`Creating worktree: ${branchName}...`);
-    const result = await createWorktree(branchName, from ? { from: from.replace(/^origin\//, "") } : undefined);
-    if (result.success) {
-      setStatusMessage(`Created worktree: ${branchName}`);
-      await refresh();
-      await refreshBranches();
-      setMode("worktrees");
-    } else {
-      setStatusMessage(`Error: ${result.error}`);
-    }
-  };
-
   useInput((input, key) => {
     if (loading || executing) return;
-
-    // Input mode for new branch name
-    if (inputMode === "new-branch") {
-      if (key.escape) {
-        setInputMode("none");
-        setNewBranchName("");
-      }
-      return; // TextInput handles other keys
-    }
 
     // Confirm dialog mode
     if (confirmDelete) {
@@ -110,21 +67,6 @@ export function App() {
       return;
     }
 
-    // Tab switching
-    if (key.tab) {
-      setMode(mode === "worktrees" ? "create" : "worktrees");
-      return;
-    }
-
-    // Mode-specific handling
-    if (mode === "worktrees") {
-      handleWorktreesInput(input, key);
-    } else {
-      handleCreateInput(input, key);
-    }
-  });
-
-  const handleWorktreesInput = (input: string, key: any) => {
     // Navigation
     if (input === "j" || key.downArrow || (key.ctrl && input === "n")) {
       worktreeNav.moveDown();
@@ -177,66 +119,7 @@ export function App() {
       refresh();
       return;
     }
-  };
-
-  const handleCreateInput = (input: string, key: any) => {
-    // Navigation
-    if (input === "j" || key.downArrow || (key.ctrl && input === "n")) {
-      branchNav.moveDown();
-      return;
-    }
-    if (input === "k" || key.upArrow || (key.ctrl && input === "p")) {
-      branchNav.moveUp();
-      return;
-    }
-    if (input === "g" || (key.ctrl && input === "a")) {
-      branchNav.moveToTop();
-      return;
-    }
-    if (input === "G" || (key.ctrl && input === "e")) {
-      branchNav.moveToBottom();
-      return;
-    }
-
-    const selected = branches[branchNav.selectedIndex];
-    if (!selected) return;
-
-    // Enter: Create worktree from selected branch
-    if (key.return) {
-      if (selected.hasWorktree) {
-        setStatusMessage("Worktree already exists for this branch");
-        return;
-      }
-      handleCreateWorktree(selected.name);
-      return;
-    }
-
-    // n: New branch from selected
-    if (input === "n") {
-      setInputMode("new-branch");
-      setNewBranchName("");
-      return;
-    }
-
-    // r: Refresh
-    if (input === "r") {
-      refreshBranches();
-      return;
-    }
-  };
-
-  const handleNewBranchSubmit = (name: string) => {
-    if (!name.trim()) {
-      setInputMode("none");
-      return;
-    }
-    const selected = branches[branchNav.selectedIndex];
-    if (selected) {
-      handleCreateWorktree(name.trim(), selected.name);
-    }
-    setInputMode("none");
-    setNewBranchName("");
-  };
+  });
 
   if (error) {
     return (
@@ -260,46 +143,22 @@ export function App() {
   return (
     <Box flexDirection="column">
       <Header config={config} mainBranch={mainBranch} />
-      <TabBar activeTab={mode} />
 
-      {mode === "worktrees" ? (
-        <>
-          {worktrees.length === 0 ? (
-            <Box flexDirection="column">
-              <Text>No worktrees found.</Text>
-              <Text dimColor>Press Tab to create one.</Text>
-            </Box>
-          ) : (
-            <WorktreeList
-              worktrees={worktrees}
-              selectedIndex={worktreeNav.selectedIndex}
-              prLoading={prLoading}
-            />
-          )}
-          {confirmDelete && <ConfirmDialog worktree={confirmDelete} />}
-        </>
+      {worktrees.length === 0 ? (
+        <Box flexDirection="column">
+          <Text>No worktrees found.</Text>
+          <Text dimColor>Use `gtr new &lt;branch&gt;` to create one.</Text>
+        </Box>
       ) : (
-        <>
-          {branchesLoading ? (
-            <Text>Loading branches...</Text>
-          ) : (
-            <BranchList
-              branches={branches}
-              selectedIndex={branchNav.selectedIndex}
-            />
-          )}
-          {inputMode === "new-branch" && (
-            <BranchInput
-              baseBranch={branches[branchNav.selectedIndex]?.name || ""}
-              value={newBranchName}
-              onChange={setNewBranchName}
-              onSubmit={handleNewBranchSubmit}
-            />
-          )}
-        </>
+        <WorktreeList
+          worktrees={worktrees}
+          selectedIndex={worktreeNav.selectedIndex}
+          prLoading={prLoading}
+        />
       )}
+      {confirmDelete && <ConfirmDialog worktree={confirmDelete} />}
 
-      <StatusBar message={statusMessage || message} activeTab={mode} />
+      <StatusBar message={statusMessage || message} />
     </Box>
   );
 }
