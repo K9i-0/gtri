@@ -1,13 +1,15 @@
 import { Box, Text } from "ink";
+import Link from "ink-link";
 import type { Worktree } from "../types/worktree.ts";
 
 interface WorktreeItemProps {
   worktree: Worktree;
   isSelected: boolean;
   index: number;
+  prLoading?: boolean;
 }
 
-export function WorktreeItem({ worktree, isSelected, index }: WorktreeItemProps) {
+export function WorktreeItem({ worktree, isSelected, index, prLoading }: WorktreeItemProps) {
   const icon = worktree.isMain ? "★" : "○";
   const iconColor = worktree.isMain ? "yellow" : "blue";
   const cursor = isSelected ? "❯" : " ";
@@ -16,6 +18,22 @@ export function WorktreeItem({ worktree, isSelected, index }: WorktreeItemProps)
     process.env.HOME || "",
     "~"
   );
+
+  // PRタイトルを切り捨て
+  const maxTitleLength = 40;
+  const prTitle = worktree.prInfo?.title
+    ? worktree.prInfo.title.length > maxTitleLength
+      ? worktree.prInfo.title.substring(0, maxTitleLength - 3) + "..."
+      : worktree.prInfo.title
+    : null;
+
+  // PRのstateに応じた色
+  const stateColor =
+    worktree.prInfo?.state === "OPEN"
+      ? "green"
+      : worktree.prInfo?.state === "MERGED"
+        ? "magenta"
+        : "red";
 
   return (
     <Box flexDirection="column" marginBottom={1}>
@@ -34,6 +52,25 @@ export function WorktreeItem({ worktree, isSelected, index }: WorktreeItemProps)
       <Box marginLeft={4}>
         <Text dimColor>{homePath}</Text>
       </Box>
+      {/* PR情報の行 - PRがある場合のみ表示 */}
+      {prLoading && !worktree.prInfo ? (
+        <Box marginLeft={4}>
+          <Text color="yellow">Loading PR...</Text>
+        </Box>
+      ) : worktree.prInfo ? (
+        <Box marginLeft={4}>
+          <Text color={stateColor}>[{worktree.prInfo.state}]</Text>
+          <Text dimColor> </Text>
+          <Link url={worktree.prInfo.url}>
+            <Text color="cyan">#{worktree.prInfo.number}</Text>
+          </Link>
+          <Text dimColor> </Text>
+          <Link url={`https://github.com/${worktree.prInfo.author.login}`}>
+            <Text color="yellow">@{worktree.prInfo.author.login}</Text>
+          </Link>
+          <Text dimColor> {prTitle}</Text>
+        </Box>
+      ) : null}
     </Box>
   );
 }

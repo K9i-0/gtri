@@ -41,7 +41,7 @@ export function App() {
     };
   }, [statusMessage]);
 
-  const { worktrees, config, mainBranch, loading, error, refresh } =
+  const { worktrees, config, mainBranch, loading, prLoading, error, refresh } =
     useWorktrees();
   const worktreeBranches = useMemo(
     () => worktrees.map((wt) => wt.branch),
@@ -64,6 +64,7 @@ export function App() {
     executeAi,
     executeCopy,
     executeDelete,
+    executePR,
   } = useActions();
 
   const handleCreateWorktree = async (branch: string, from?: string) => {
@@ -168,6 +169,10 @@ export function App() {
       }
       return;
     }
+    if (input === "p") {
+      executePR(selected);
+      return;
+    }
     if (input === "r") {
       refresh();
       return;
@@ -268,6 +273,7 @@ export function App() {
             <WorktreeList
               worktrees={worktrees}
               selectedIndex={worktreeNav.selectedIndex}
+              prLoading={prLoading}
             />
           )}
           {confirmDelete && <ConfirmDialog worktree={confirmDelete} />}
