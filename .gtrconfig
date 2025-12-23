@@ -1,0 +1,2 @@
+[gtr "hook"]
+  postCreate = bun install
