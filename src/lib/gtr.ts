@@ -71,14 +71,23 @@ export async function listWorktrees(): Promise<Worktree[]> {
   const worktrees: Worktree[] = [];
 
   for (const wt of parsed) {
-    const [shortHash, upstreamBranch] = await Promise.all([
+    const [shortHash, upstreamBranch, isDirty] = await Promise.all([
       getShortHash(wt.path),
       getUpstreamBranch(wt.branch),
+      checkIsDirty(wt.path),
     ]);
-    worktrees.push({ ...wt, shortHash, upstreamBranch });
+    worktrees.push({ ...wt, shortHash, upstreamBranch, isDirty });
   }
 
   return worktrees;
+}
+
+async function checkIsDirty(worktreePath: string): Promise<boolean> {
+  const { stdout, exitCode } = await runGitCommand(
+    ["status", "--porcelain"],
+    worktreePath
+  );
+  return exitCode === 0 && stdout.length > 0;
 }
 
 async function getShortHash(worktreePath: string): Promise<string | undefined> {
@@ -139,9 +148,24 @@ export async function getAiCommand(branch: string): Promise<string | null> {
   return `cd "${path}" && git gtr ai "${branch}"`;
 }
 
-export async function removeWorktree(branch: string): Promise<boolean> {
-  const { exitCode } = await runCommand(["rm", branch, "--yes"]);
-  return exitCode === 0;
+export interface RemoveWorktreeResult {
+  success: boolean;
+  error?: string;
+}
+
+export async function removeWorktree(branch: string): Promise<RemoveWorktreeResult> {
+  const { exitCode, stderr } = await runCommand([
+    "rm",
+    branch,
+    "--yes",
+    "--force",
+    "--delete-branch",
+  ]);
+  if (exitCode === 0) {
+    return { success: true };
+  }
+
+  return { success: false, error: stderr || "Failed to remove worktree" };
 }
 
 export async function getWorktreePath(branch: string): Promise<string | null> {
