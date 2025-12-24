@@ -54,22 +54,36 @@ function compareVersions(current: string, latest: string): number {
   return 0;
 }
 
+async function downloadBinary(url: string, tempPath: string): Promise<void> {
+  try {
+    // Try fetch first (faster, no sudo prompt)
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to download: ${response.statusText}`);
+    }
+    const binary = await response.arrayBuffer();
+    await Bun.write(tempPath, binary);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    // Fallback to curl for SSL certificate issues (corporate proxies)
+    if (message.includes("certificate")) {
+      console.log("Falling back to curl...");
+      await $`curl -fsSL -o ${tempPath} ${url}`;
+    } else {
+      throw error;
+    }
+  }
+}
+
 async function downloadAndInstall(url: string): Promise<void> {
   console.log("Downloading...");
-
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to download: ${response.statusText}`);
-  }
-
-  const binary = await response.arrayBuffer();
 
   // Get the path of the current executable
   const execPath = process.execPath;
 
   // Download to temp directory first (always writable)
   const tempPath = `/tmp/gtri-update-${Date.now()}`;
-  await Bun.write(tempPath, binary);
+  await downloadBinary(url, tempPath);
 
   // Make it executable
   await $`chmod +x ${tempPath}`;
