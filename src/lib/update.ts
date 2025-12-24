@@ -67,20 +67,26 @@ async function downloadAndInstall(url: string): Promise<void> {
   // Get the path of the current executable
   const execPath = process.execPath;
 
-  // Write to a temp file first
-  const tempPath = `${execPath}.new`;
+  // Download to temp directory first (always writable)
+  const tempPath = `/tmp/gtri-update-${Date.now()}`;
   await Bun.write(tempPath, binary);
 
   // Make it executable
   await $`chmod +x ${tempPath}`;
 
-  // Replace the current binary
-  const backupPath = `${execPath}.backup`;
-  await $`mv ${execPath} ${backupPath}`;
-  await $`mv ${tempPath} ${execPath}`;
-  await $`rm -f ${backupPath}`;
-
-  console.log("Update complete!");
+  // Try to replace directly, if permission denied, use sudo
+  try {
+    const backupPath = `${execPath}.backup`;
+    await $`mv ${execPath} ${backupPath}`.quiet();
+    await $`mv ${tempPath} ${execPath}`.quiet();
+    await $`rm -f ${backupPath}`.quiet();
+    console.log("Update complete!");
+  } catch {
+    // Permission denied - need sudo
+    console.log("\nPermission required. Running with sudo...");
+    await $`sudo mv ${tempPath} ${execPath}`;
+    console.log("Update complete!");
+  }
 }
 
 export async function update(): Promise<void> {
@@ -114,10 +120,17 @@ export async function update(): Promise<void> {
     await downloadAndInstall(asset.browser_download_url);
     console.log(`Successfully updated to ${latestVersion}`);
   } catch (error) {
-    console.error(
-      "Update failed:",
-      error instanceof Error ? error.message : error
-    );
+    const message = error instanceof Error ? error.message : String(error);
+
+    // Provide helpful hints for common errors
+    if (message.includes("certificate")) {
+      console.error("Update failed:", message);
+      console.error("\nHint: This may be caused by a corporate proxy or firewall.");
+      console.error("Try downloading manually from:");
+      console.error(`  https://github.com/${REPO}/releases/latest`);
+    } else {
+      console.error("Update failed:", message);
+    }
     process.exit(1);
   }
 }
