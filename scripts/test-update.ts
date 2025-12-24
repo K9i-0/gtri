@@ -2,6 +2,8 @@
 /**
  * Test script for update installation logic
  * Usage: bun scripts/test-update.ts
+ *
+ * Uses curl to avoid SSL certificate issues with corporate proxies
  */
 
 import { $ } from "bun";
@@ -11,22 +13,15 @@ const REPO = "K9i-0/gtri";
 async function downloadAndInstall(url: string): Promise<void> {
   console.log("Downloading...");
 
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to download: ${response.statusText}`);
-  }
-
-  const binary = await response.arrayBuffer();
-
-  // Get the path of the current executable
-  const execPath = process.execPath;
-
-  // Download to temp directory first (always writable)
+  // Use curl to avoid SSL certificate issues with corporate proxies
   const tempPath = `/tmp/gtri-update-${Date.now()}`;
-  await Bun.write(tempPath, binary);
+  await $`curl -fsSL -o ${tempPath} ${url}`;
 
   // Make it executable
   await $`chmod +x ${tempPath}`;
+
+  // Get the path of the current executable
+  const execPath = process.execPath;
 
   console.log(`Downloaded to: ${tempPath}`);
   console.log(`Target: ${execPath}`);
@@ -47,17 +42,16 @@ async function downloadAndInstall(url: string): Promise<void> {
 }
 
 async function main() {
-  // Get latest release info
-  const response = await fetch(
-    `https://api.github.com/repos/${REPO}/releases/latest`
-  );
-  const release = await response.json();
+  // Get latest release info using curl
+  const releaseJson =
+    await $`curl -fsSL https://api.github.com/repos/${REPO}/releases/latest`.text();
+  const release = JSON.parse(releaseJson);
 
   console.log(`Latest release: ${release.tag_name}`);
 
   // Find darwin-arm64 asset
-  const asset = release.assets.find((a: { name: string }) =>
-    a.name === "gtri-darwin-arm64"
+  const asset = release.assets.find(
+    (a: { name: string }) => a.name === "gtri-darwin-arm64"
   );
 
   if (!asset) {
