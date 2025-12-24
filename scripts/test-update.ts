@@ -20,8 +20,8 @@ async function downloadAndInstall(url: string): Promise<void> {
   // Make it executable
   await $`chmod +x ${tempPath}`;
 
-  // Get the path of the current executable
-  const execPath = process.execPath;
+  // Get the path of gtri (not the bun executable running this script)
+  const execPath = "/usr/local/bin/gtri";
 
   console.log(`Downloaded to: ${tempPath}`);
   console.log(`Target: ${execPath}`);
