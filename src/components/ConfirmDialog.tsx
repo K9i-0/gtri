@@ -21,6 +21,13 @@ export function ConfirmDialog({ worktree }: ConfirmDialogProps) {
       <Text>
         Are you sure you want to delete '{worktree.branch}'?
       </Text>
+      {worktree.isDirty && (
+        <Box marginTop={1}>
+          <Text color="yellow" bold>
+            Warning: This worktree has uncommitted changes!
+          </Text>
+        </Box>
+      )}
       <Box marginTop={1}>
         <Text dimColor>
           Press [y] to confirm, any other key to cancel

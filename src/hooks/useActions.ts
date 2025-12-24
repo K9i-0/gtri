@@ -54,15 +54,15 @@ export function useActions(): UseActionsReturn {
   const executeDelete = useCallback(async (worktree: Worktree) => {
     setExecuting(true);
     try {
-      const success = await removeWorktree(worktree.branch);
-      if (success) {
+      const result = await removeWorktree(worktree.branch);
+      if (result.success) {
         setMessage(`Deleted: ${worktree.branch}`);
         setTimeout(() => setMessage(null), 2000);
       } else {
-        setMessage(`Failed to delete: ${worktree.branch}`);
-        setTimeout(() => setMessage(null), 2000);
+        setMessage(result.error ?? `Failed to delete: ${worktree.branch}`);
+        setTimeout(() => setMessage(null), 5000);
       }
-      return success;
+      return result.success;
     } finally {
       setExecuting(false);
       setConfirmDelete(null);

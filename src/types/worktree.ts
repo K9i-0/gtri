@@ -18,6 +18,7 @@ export interface Worktree {
   isMain: boolean;
   shortHash?: string;
   prInfo?: PRInfo;
+  isDirty?: boolean;
 }
 
 export interface GtrConfig {
