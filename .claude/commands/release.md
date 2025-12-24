@@ -8,7 +8,7 @@ description: Release a new version (update CHANGELOG, package.json, tag, push)
 
 - Current version in package.json: !`grep '"version"' package.json`
 - Latest tag: !`git tag -l --sort=-v:refname | head -1`
-- Recent commits since last tag: !`git log $(git tag -l --sort=-v:refname | head -1)..HEAD --oneline`
+- Recent commits since last tag: (run `git log <latest-tag>..HEAD --oneline` to see)
 - Merged PRs: !`gh pr list --state merged --limit 10 --json number,title,mergedAt`
 
 ## Task
