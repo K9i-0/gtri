@@ -1,7 +1,7 @@
 import { $ } from "bun";
 
 const REPO = "K9i-0/gtri";
-const CURRENT_VERSION = "1.1.0";
+const CURRENT_VERSION = "1.2.0";
 
 interface GitHubRelease {
   tag_name: string;
@@ -124,4 +124,43 @@ export async function update(): Promise<void> {
 
 export function showVersion(): void {
   console.log(`gtri v${CURRENT_VERSION}`);
+}
+
+/**
+ * Check for updates at startup and display a notification if available.
+ * This runs in the background and won't block the app if it fails.
+ */
+export async function checkForUpdates(): Promise<void> {
+  try {
+    const release = await getLatestRelease();
+    const latestVersion = release.tag_name;
+
+    const cmp = compareVersions(CURRENT_VERSION, latestVersion);
+
+    if (cmp < 0) {
+      // New version available - show colored notification
+      const yellow = "\x1b[33m";
+      const cyan = "\x1b[36m";
+      const bold = "\x1b[1m";
+      const reset = "\x1b[0m";
+
+      console.log("");
+      console.log(
+        `${yellow}╭${"─".repeat(45)}╮${reset}`
+      );
+      console.log(
+        `${yellow}│${reset} ${bold}New version available:${reset} ${cyan}${latestVersion}${reset}${" ".repeat(45 - 23 - latestVersion.length)}${yellow}│${reset}`
+      );
+      console.log(
+        `${yellow}│${reset} Run: ${cyan}${bold}gtri update${reset}${" ".repeat(45 - 17)}${yellow}│${reset}`
+      );
+      console.log(
+        `${yellow}╰${"─".repeat(45)}╯${reset}`
+      );
+      console.log("");
+    }
+  } catch (error) {
+    // Silently fail - don't block the app if version check fails
+    // (e.g., no internet connection, GitHub API rate limit, etc.)
+  }
 }

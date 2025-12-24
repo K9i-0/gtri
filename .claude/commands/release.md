@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git:*), Bash(gh:*), Read, Edit, Grep, Glob
+allowed-tools: Bash(git:*), Bash(gh:*), Bash(./scripts/release.sh:*), Read, Edit, Grep, Glob
 argument-hint: <version>
 description: Release a new version (update CHANGELOG, package.json, tag, push)
 ---
@@ -16,7 +16,7 @@ description: Release a new version (update CHANGELOG, package.json, tag, push)
 Release version $ARGUMENTS:
 
 1. Read CHANGELOG.md and update with new version section
-2. Update package.json version to $ARGUMENTS
-3. Commit: `chore: release v$ARGUMENTS`
-4. Create tag: `git tag v$ARGUMENTS`
-5. Push: `git push && git push --tags`
+2. Run `./scripts/release.sh $ARGUMENTS` to:
+   - Update package.json version
+   - Update src/lib/update.ts CURRENT_VERSION
+   - Commit, tag, and push

@@ -2,7 +2,7 @@
 import { render } from "ink";
 import { App } from "./App.tsx";
 import { checkGtrExists } from "./lib/gtr.ts";
-import { update, showVersion } from "./lib/update.ts";
+import { update, showVersion, checkForUpdates } from "./lib/update.ts";
 
 async function main() {
   const args = process.argv.slice(2);
@@ -51,6 +51,9 @@ async function main() {
     );
     process.exit(1);
   }
+
+  // Check for updates at startup
+  await checkForUpdates();
 
   render(<App />);
 }
