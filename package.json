@@ -1,6 +1,6 @@
 {
   "name": "gtri",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Interactive TUI for git-worktree-runner",
   "module": "src/index.tsx",
   "type": "module",
