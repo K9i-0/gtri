@@ -17,6 +17,9 @@ interface UseWorktreesReturn {
   error: string | null;
   ghAvailable: boolean;
   refresh: () => Promise<void>;
+  deletingBranch: string | null;
+  setDeletingBranch: (branch: string | null) => void;
+  removeWorktreeFromList: (branch: string) => void;
 }
 
 export function useWorktrees(): UseWorktreesReturn {
@@ -27,6 +30,11 @@ export function useWorktrees(): UseWorktreesReturn {
   const [prLoading, setPrLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ghAvailable, setGhAvailable] = useState(false);
+  const [deletingBranch, setDeletingBranch] = useState<string | null>(null);
+
+  const removeWorktreeFromList = useCallback((branch: string) => {
+    setWorktrees((prev) => prev.filter((wt) => wt.branch !== branch));
+  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -71,5 +79,17 @@ export function useWorktrees(): UseWorktreesReturn {
     refresh();
   }, [refresh]);
 
-  return { worktrees, config, mainBranch, loading, prLoading, error, ghAvailable, refresh };
+  return {
+    worktrees,
+    config,
+    mainBranch,
+    loading,
+    prLoading,
+    error,
+    ghAvailable,
+    refresh,
+    deletingBranch,
+    setDeletingBranch,
+    removeWorktreeFromList,
+  };
 }

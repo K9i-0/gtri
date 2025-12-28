@@ -30,8 +30,18 @@ export function App() {
     };
   }, [statusMessage]);
 
-  const { worktrees, config, mainBranch, loading, prLoading, error, refresh } =
-    useWorktrees();
+  const {
+    worktrees,
+    config,
+    mainBranch,
+    loading,
+    prLoading,
+    error,
+    refresh,
+    deletingBranch,
+    setDeletingBranch,
+    removeWorktreeFromList,
+  } = useWorktrees();
 
   // Navigation for worktrees
   const worktreeNav = useNavigation(worktrees.length);
@@ -54,7 +64,20 @@ export function App() {
     // Confirm dialog mode
     if (confirmDelete) {
       if (input === "y" || input === "Y") {
-        executeDelete(confirmDelete).then(() => refresh());
+        const branchToDelete = confirmDelete.branch;
+        setDeletingBranch(branchToDelete);
+        setConfirmDelete(null);
+
+        executeDelete(confirmDelete).then((success) => {
+          setDeletingBranch(null);
+          if (success) {
+            removeWorktreeFromList(branchToDelete);
+            // 削除後、選択インデックスが範囲外にならないよう調整
+            if (worktreeNav.selectedIndex >= worktrees.length - 1) {
+              worktreeNav.selectIndex(Math.max(0, worktrees.length - 2));
+            }
+          }
+        });
       } else {
         setConfirmDelete(null);
       }
@@ -154,6 +177,7 @@ export function App() {
           worktrees={worktrees}
           selectedIndex={worktreeNav.selectedIndex}
           prLoading={prLoading}
+          deletingBranch={deletingBranch}
         />
       )}
       {confirmDelete && <ConfirmDialog worktree={confirmDelete} />}
