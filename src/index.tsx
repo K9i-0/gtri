@@ -5,7 +5,11 @@ import { checkGtrExists } from "./lib/gtr.ts";
 import { update, showVersion, checkForUpdates } from "./lib/update.ts";
 
 async function main() {
-  const args = process.argv.slice(2);
+  // Bunコンパイル済みバイナリでは argv[2] に実行ファイルのパスが入るためスキップ
+  let args = process.argv.slice(2);
+  if (args[0]?.includes("gtri") && !["update", "version", "help"].includes(args[0])) {
+    args = args.slice(1);
+  }
   const command = args[0];
 
   // Handle subcommands
