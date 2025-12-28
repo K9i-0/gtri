@@ -1,5 +1,6 @@
 import { Box, Text } from "ink";
 import Link from "ink-link";
+import Spinner from "ink-spinner";
 import type { Worktree } from "../types/worktree.ts";
 
 interface WorktreeItemProps {
@@ -7,9 +8,10 @@ interface WorktreeItemProps {
   isSelected: boolean;
   index: number;
   prLoading?: boolean;
+  isDeleting?: boolean;
 }
 
-export function WorktreeItem({ worktree, isSelected, index, prLoading }: WorktreeItemProps) {
+export function WorktreeItem({ worktree, isSelected, index, prLoading, isDeleting }: WorktreeItemProps) {
   const icon = worktree.isMain ? "★" : "○";
   const iconColor = worktree.isMain ? "yellow" : "blue";
   const cursor = isSelected ? "❯" : " ";
@@ -34,6 +36,21 @@ export function WorktreeItem({ worktree, isSelected, index, prLoading }: Worktre
       : worktree.prInfo?.state === "MERGED"
         ? "magenta"
         : "red";
+
+  if (isDeleting) {
+    return (
+      <Box flexDirection="column" marginBottom={1}>
+        <Box>
+          <Text color="red">  </Text>
+          <Text color="red">
+            <Spinner type="dots" />
+          </Text>
+          <Text color="red"> Deleting...</Text>
+          <Text dimColor> {worktree.branch}</Text>
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box flexDirection="column" marginBottom={1}>

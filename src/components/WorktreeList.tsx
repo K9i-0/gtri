@@ -6,9 +6,10 @@ interface WorktreeListProps {
   worktrees: Worktree[];
   selectedIndex: number;
   prLoading?: boolean;
+  deletingBranch?: string | null;
 }
 
-export function WorktreeList({ worktrees, selectedIndex, prLoading }: WorktreeListProps) {
+export function WorktreeList({ worktrees, selectedIndex, prLoading, deletingBranch }: WorktreeListProps) {
   return (
     <Box flexDirection="column" marginBottom={1}>
       <Box marginBottom={1}>
@@ -22,6 +23,7 @@ export function WorktreeList({ worktrees, selectedIndex, prLoading }: WorktreeLi
             isSelected={index === selectedIndex}
             index={index}
             prLoading={prLoading && !worktree.prInfo}
+            isDeleting={deletingBranch === worktree.branch}
           />
         ))}
       </Box>
