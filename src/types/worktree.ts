@@ -8,6 +8,7 @@ export interface PRInfo {
   url: string;
   state: "OPEN" | "CLOSED" | "MERGED";
   author: PRAuthor;
+  headRefName?: string;
 }
 
 export interface Worktree {
@@ -27,3 +28,5 @@ export interface GtrConfig {
 }
 
 export type ActionType = "editor" | "ai" | "copy" | "delete" | "refresh";
+
+export type TabType = "worktrees" | "prs";
