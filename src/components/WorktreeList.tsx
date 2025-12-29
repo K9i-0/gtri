@@ -2,6 +2,8 @@ import { Box, Text } from "ink";
 import type { Worktree } from "../types/worktree.ts";
 import { WorktreeItem } from "./WorktreeItem.tsx";
 
+const VISIBLE_COUNT = 7;
+
 interface WorktreeListProps {
   worktrees: Worktree[];
   selectedIndex: number;
@@ -10,23 +12,44 @@ interface WorktreeListProps {
 }
 
 export function WorktreeList({ worktrees, selectedIndex, prLoading, deletingBranch }: WorktreeListProps) {
+  // Calculate visible range (keep selected item near center)
+  const startIndex = Math.max(
+    0,
+    Math.min(
+      selectedIndex - Math.floor(VISIBLE_COUNT / 2),
+      worktrees.length - VISIBLE_COUNT
+    )
+  );
+  const endIndex = Math.min(startIndex + VISIBLE_COUNT, worktrees.length);
+  const visibleWorktrees = worktrees.slice(startIndex, endIndex);
+
+  const hasMoreAbove = startIndex > 0;
+  const hasMoreBelow = endIndex < worktrees.length;
+
   return (
     <Box flexDirection="column" marginBottom={1}>
-      <Box marginBottom={1}>
-        <Text bold>Worktrees ({worktrees.length})</Text>
-      </Box>
+      {hasMoreAbove && (
+        <Box marginLeft={2}>
+          <Text dimColor>↑ more ({startIndex})</Text>
+        </Box>
+      )}
       <Box flexDirection="column">
-        {worktrees.map((worktree, index) => (
+        {visibleWorktrees.map((worktree, index) => (
           <WorktreeItem
             key={worktree.path}
             worktree={worktree}
-            isSelected={index === selectedIndex}
-            index={index}
+            isSelected={startIndex + index === selectedIndex}
+            index={startIndex + index}
             prLoading={prLoading && !worktree.prInfo}
             isDeleting={deletingBranch === worktree.branch}
           />
         ))}
       </Box>
+      {hasMoreBelow && (
+        <Box marginLeft={2}>
+          <Text dimColor>↓ more ({worktrees.length - endIndex})</Text>
+        </Box>
+      )}
     </Box>
   );
 }
