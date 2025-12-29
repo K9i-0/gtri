@@ -44,6 +44,7 @@ export function PRItem({ pr, isSelected, index, isCreating }: PRItemProps) {
             #{pr.number}
           </Text>
         </Link>
+        {pr.isDraft && <Text color="gray"> [Draft]</Text>}
         <Text> </Text>
         <Text bold={isSelected}>{prTitle}</Text>
         <Text dimColor> ({index + 1})</Text>

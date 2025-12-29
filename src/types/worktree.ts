@@ -9,6 +9,7 @@ export interface PRInfo {
   state: "OPEN" | "CLOSED" | "MERGED";
   author: PRAuthor;
   headRefName?: string;
+  isDraft?: boolean;
 }
 
 export interface Worktree {

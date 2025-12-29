@@ -261,7 +261,7 @@ export async function getOpenPRs(): Promise<PRInfo[]> {
     "--state",
     "open",
     "--json",
-    "number,title,url,state,author,headRefName",
+    "number,title,url,state,author,headRefName,isDraft",
     "--limit",
     "100",
   ]);
