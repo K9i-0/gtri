@@ -81,7 +81,7 @@ export function App() {
   const currentNav = activeTab === "worktrees" ? worktreeNav : prNav;
 
   useInput((input, key) => {
-    if (loading || executing) return;
+    if (loading) return;
 
     // Confirm dialog mode
     if (confirmDelete) {
@@ -147,7 +147,9 @@ export function App() {
       return;
     }
 
-    // Tab-specific actions
+    // Tab-specific actions (blocked during executing)
+    if (executing) return;
+
     if (activeTab === "worktrees") {
       // Worktree tab actions
       const selected = worktrees[worktreeNav.selectedIndex];
