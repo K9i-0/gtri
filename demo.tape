@@ -14,6 +14,7 @@ Enter
 Sleep 2s
 
 # === Worktrees Tab ===
+# Manage existing worktrees - launch AI/editor, view PR status
 
 # Navigate down with j
 Type "j"
@@ -25,21 +26,22 @@ Sleep 0.8s
 Type "k"
 Sleep 0.8s
 
-# Copy path to clipboard
-Type "c"
-Sleep 1.5s
-
-# Copy AI command
+# Copy AI command to clipboard
 Type "a"
 Sleep 1.5s
 
-# === Create Tab ===
+# Copy worktree path
+Type "c"
+Sleep 1.5s
 
-# Switch to Create tab
+# === Open PRs Tab ===
+# Review PRs easily - create worktree with one key
+
+# Switch to Open PRs tab
 Tab
 Sleep 1.5s
 
-# Navigate branches
+# Navigate PRs
 Type "j"
 Sleep 0.8s
 Type "j"
