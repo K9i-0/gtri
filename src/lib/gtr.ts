@@ -1,4 +1,9 @@
-import type { Worktree, GtrConfig, PRInfo } from "../types/worktree.ts";
+import type {
+  Worktree,
+  GtrConfig,
+  PRInfo,
+  BaseBranchMode,
+} from "../types/worktree.ts";
 
 async function runCommand(
   args: string[]
@@ -333,4 +338,190 @@ export async function createWorktreeFromBranch(
   }
 
   return { success: false, error: stderr || "Failed to create worktree" };
+}
+
+// gtr new コマンドの引数を構築
+export function buildGtrNewCommand(
+  branchName: string,
+  baseBranch: BaseBranchMode
+): string[] {
+  const args = ["new"];
+
+  switch (baseBranch.type) {
+    case "default":
+      // gtr new <branch> --yes
+      args.push(branchName, "--yes");
+      break;
+    case "fromSelected":
+      // gtr new <branch> --from <selected_worktree_branch> --yes
+      args.push(branchName, "--from", baseBranch.ref, "--yes");
+      break;
+    case "fromCurrent":
+      // gtr new <branch> --from-current --yes
+      args.push(branchName, "--from-current", "--yes");
+      break;
+  }
+
+  return args;
+}
+
+// 新規worktreeを作成（バックグラウンド実行用）
+export async function createWorktreeNew(
+  branchName: string,
+  baseBranch: BaseBranchMode
+): Promise<CreateWorktreeResult> {
+  const args = buildGtrNewCommand(branchName, baseBranch);
+  const { stdout, stderr, exitCode } = await runCommand(args);
+
+  if (exitCode === 0) {
+    // 出力からパスを抽出（gtr new の出力形式に依存）
+    // 通常は作成されたパスが出力される
+    return { success: true, path: stdout || undefined };
+  }
+
+  return { success: false, error: stderr || "Failed to create worktree" };
+}
+
+// ブランチ名のバリデーション
+export interface BranchNameValidation {
+  valid: boolean;
+  error?: string;
+}
+
+export function validateBranchName(name: string): BranchNameValidation {
+  if (!name.trim()) {
+    return { valid: false, error: "Branch name cannot be empty" };
+  }
+
+  // Gitのブランチ名規則に従う
+  const invalidChars = /[\s~^:?*[\]\\]/;
+  if (invalidChars.test(name)) {
+    return { valid: false, error: "Branch name contains invalid characters" };
+  }
+
+  if (name.startsWith("-") || name.endsWith(".") || name.endsWith("/")) {
+    return { valid: false, error: "Invalid branch name format" };
+  }
+
+  // 連続する . や // をチェック
+  if (name.includes("..") || name.includes("//")) {
+    return { valid: false, error: "Invalid branch name format" };
+  }
+
+  // @ が単独で使われていないかチェック
+  if (name === "@" || name.includes("@{")) {
+    return { valid: false, error: "Invalid branch name format" };
+  }
+
+  return { valid: true };
+}
+
+// デフォルトブランチを取得
+export async function getDefaultBranch(): Promise<string> {
+  // git symbolic-ref refs/remotes/origin/HEAD を試す
+  const { stdout, exitCode } = await runGitCommand([
+    "symbolic-ref",
+    "--short",
+    "refs/remotes/origin/HEAD",
+  ]);
+
+  if (exitCode === 0 && stdout) {
+    // origin/main -> main
+    return stdout.replace(/^origin\//, "");
+  }
+
+  // フォールバック: main または master を確認
+  const { exitCode: mainExitCode } = await runGitCommand([
+    "rev-parse",
+    "--verify",
+    "refs/heads/main",
+  ]);
+
+  if (mainExitCode === 0) {
+    return "main";
+  }
+
+  return "master";
+}
+
+// パスでエディタを開く
+export async function openEditorAtPath(path: string): Promise<void> {
+  // gtr editor は branch 名を取るので、パスから branch を推測するか、
+  // 直接 config のエディタコマンドを使う
+  const config = await getConfig();
+  if (config.editor === "none") {
+    return;
+  }
+
+  // エディタコマンドをバックグラウンドで起動
+  Bun.spawn([config.editor, path], {
+    stdout: "ignore",
+    stderr: "ignore",
+  });
+}
+
+// gtri 固有の設定（個人設定、チーム共有しない）
+export interface GtriCreateSettings {
+  baseBranchMode: "default" | "fromSelected" | "fromCurrent";
+  openEditor: boolean;
+}
+
+const DEFAULT_CREATE_SETTINGS: GtriCreateSettings = {
+  baseBranchMode: "default",
+  openEditor: false,
+};
+
+// ローカルgit configから gtri の設定を読み込む
+// .git/config に保存されるため、チームで共有されない
+export async function getGtriCreateSettings(): Promise<GtriCreateSettings> {
+  // baseBranchMode を読み込む
+  const baseModeResult = await runGitCommand([
+    "config",
+    "--local",
+    "--get",
+    "gtri.create.baseBranchMode",
+  ]);
+  const baseBranchMode =
+    baseModeResult.exitCode === 0 &&
+    ["default", "fromSelected", "fromCurrent"].includes(baseModeResult.stdout)
+      ? (baseModeResult.stdout as GtriCreateSettings["baseBranchMode"])
+      : DEFAULT_CREATE_SETTINGS.baseBranchMode;
+
+  // openEditor を読み込む
+  const openEditorResult = await runGitCommand([
+    "config",
+    "--local",
+    "--get",
+    "gtri.create.openEditor",
+  ]);
+  const openEditor =
+    openEditorResult.exitCode === 0
+      ? openEditorResult.stdout === "true"
+      : DEFAULT_CREATE_SETTINGS.openEditor;
+
+  return { baseBranchMode, openEditor };
+}
+
+// ローカルgit configに gtri の設定を保存する
+// .git/config に保存されるため、チームで共有されない
+export async function saveGtriCreateSettings(
+  settings: Partial<GtriCreateSettings>
+): Promise<void> {
+  if (settings.baseBranchMode !== undefined) {
+    await runGitCommand([
+      "config",
+      "--local",
+      "gtri.create.baseBranchMode",
+      settings.baseBranchMode,
+    ]);
+  }
+
+  if (settings.openEditor !== undefined) {
+    await runGitCommand([
+      "config",
+      "--local",
+      "gtri.create.openEditor",
+      settings.openEditor ? "true" : "false",
+    ]);
+  }
 }

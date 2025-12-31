@@ -1,15 +1,17 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import { useWorktrees } from "./hooks/useWorktrees.ts";
 import { useNavigation } from "./hooks/useNavigation.ts";
 import { useActions } from "./hooks/useActions.ts";
 import { usePRs } from "./hooks/usePRs.ts";
+import { useCreateWorktree } from "./hooks/useCreateWorktree.ts";
 import { Header } from "./components/Header.tsx";
 import { WorktreeList } from "./components/WorktreeList.tsx";
 import { PRList } from "./components/PRList.tsx";
 import { TabBar } from "./components/TabBar.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
 import { ConfirmDialog } from "./components/ConfirmDialog.tsx";
+import { CreateWorktreeDialog } from "./components/CreateWorktreeDialog.tsx";
 import { openPRInBrowser } from "./lib/gtr.ts";
 import type { TabType } from "./types/worktree.ts";
 
@@ -77,11 +79,44 @@ export function App() {
     executePR,
   } = useActions();
 
+  // Get selected worktree branch for create worktree context
+  const selectedWorktree = worktrees[worktreeNav.selectedIndex];
+  const selectedWorktreeBranch = selectedWorktree?.branch;
+
+  // Create worktree hook
+  const handleCreateStatusMessage = useCallback(
+    (msg: string, type: "success" | "error") => {
+      setStatusMessage(msg);
+    },
+    []
+  );
+
+  const createWorktreeHook = useCreateWorktree({
+    onSuccess: refresh,
+    onStatusMessage: handleCreateStatusMessage,
+    selectedWorktreeBranch,
+  });
+
   // Get current navigation based on active tab
   const currentNav = activeTab === "worktrees" ? worktreeNav : prNav;
 
   useInput((input, key) => {
     if (loading) return;
+
+    // Create worktree dialog mode
+    if (createWorktreeHook.isDialogOpen) {
+      if (key.escape) {
+        createWorktreeHook.closeDialog();
+        return;
+      }
+      if (key.tab) {
+        createWorktreeHook.nextField();
+        return;
+      }
+      // Enter is handled by TextInput onSubmit or submit button
+      // Other keys are handled by the dialog component itself
+      return;
+    }
 
     // Confirm dialog mode
     if (confirmDelete) {
@@ -177,6 +212,10 @@ export function App() {
         executePR(selected);
         return;
       }
+      if (input === "n") {
+        createWorktreeHook.openDialog();
+        return;
+      }
     } else {
       // PR tab actions
       const selectedPR = prs[prNav.selectedIndex];
@@ -247,6 +286,7 @@ export function App() {
             selectedIndex={worktreeNav.selectedIndex}
             prLoading={prLoading}
             deletingBranch={deletingBranch}
+            pendingWorktrees={createWorktreeHook.state.pending}
           />
         )
       ) : prListLoading ? (
@@ -268,7 +308,23 @@ export function App() {
 
       {confirmDelete && <ConfirmDialog worktree={confirmDelete} />}
 
-      <StatusBar message={statusMessage || message} activeTab={activeTab} />
+      {createWorktreeHook.isDialogOpen && (
+        <CreateWorktreeDialog
+          state={createWorktreeHook.state.dialog}
+          onBranchNameChange={createWorktreeHook.setBranchName}
+          onBaseBranchChange={createWorktreeHook.setBaseBranch}
+          onToggleOpenEditor={createWorktreeHook.toggleOpenEditor}
+          onNextField={createWorktreeHook.nextField}
+          onSubmit={createWorktreeHook.submit}
+          onCancel={createWorktreeHook.closeDialog}
+        />
+      )}
+
+      <StatusBar
+        message={statusMessage || message}
+        activeTab={activeTab}
+        createDialogOpen={createWorktreeHook.isDialogOpen}
+      />
     </Box>
   );
 }

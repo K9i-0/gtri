@@ -52,6 +52,18 @@ ai = claude
 
 gtri はエディタ/AI起動やworktree作成時にこれらの設定を自動的に使用します。
 
+### gtri固有の設定
+
+gtriはworktree作成ダイアログの個人設定をローカルgit config (`.git/config`) に保存します：
+
+```ini
+[gtri "create"]
+baseBranchMode = fromCurrent  # default, fromSelected, fromCurrent のいずれか
+openEditor = true             # 作成後にエディタを自動で開く
+```
+
+これらの設定はリポジトリごとに保存され、チームメンバーとは共有されません。worktree作成成功時に自動保存され、次回のデフォルト値として使用されます。
+
 ## 機能
 
 - **2タブ構成**: Worktreesタブ + Open PRsタブ
@@ -114,7 +126,25 @@ gtri help         # ヘルプ表示
 | `a` | AIコマンドをクリップボードにコピー |
 | `c` | worktreeパスをコピー |
 | `d` | worktreeを削除 |
+| `n` | 新規worktreeを作成 |
 | `p` | PRをブラウザで開く |
+
+#### 新規Worktree作成ダイアログ
+
+`n` キーで作成ダイアログを開きます：
+
+| キー | 動作 |
+|------|------|
+| `Tab` | 次のフィールドに移動 |
+| `↑` / `↓` | ベースブランチオプションを選択 |
+| `Space` | 「エディタを開く」チェックボックスを切り替え |
+| `Enter` | worktreeを作成 |
+| `Esc` | キャンセル |
+
+**ベースブランチオプション:**
+- **Default branch**: main/masterから作成
+- **From selected**: 選択中のworktreeのブランチから作成
+- **From current (main repo)**: メインリポジトリでチェックアウト中のブランチから作成
 
 ### Open PRsタブ
 
