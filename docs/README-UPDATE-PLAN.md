@@ -108,16 +108,24 @@ gtri is designed for **team development on medium to large projects**:
                 選ぶだけ（命名不要）
 ```
 
+##### 内部的には同じ（gtr new）
+
+> **Note**: gtriのPRタブ `w` キーも内部的には `gtr new` を呼び出している。
+> `.gtrconfig` の設定（postCreateフック等）は**どちらでも同様に適用される**。
+> 差があるのは「UIとワークフロー」であって「機能」ではない。
+
 ##### なぜこの使い分けが合理的か
 
 | 観点 | 自分のタスク (gtr) | PRレビュー (gtri) |
 |------|-------------------|------------------|
 | ブランチ名 | 自分で命名 | 既に存在 |
+| ベースブランチ | 選択が必要（main? develop?） | 考える必要なし（PRのheadをそのまま） |
 | 必要な情報 | Issue/要件 | PR一覧・author・status |
-| 設定 | `.gtrconfig`でフック等 | 最小限でOK |
 | 寿命 | 長期（開発完了まで） | 短期（レビュー完了まで） |
 | 頻度 | 低（1タスク1回） | 高（複数PR並行レビュー） |
 | 最適UI | CLI（タイプが必要） | TUI（選択するだけ） |
+
+※ 設定（`.gtrconfig`）は両方で共通。postCreateフック等はどちらで作成しても実行される。
 
 ##### README記載案
 
