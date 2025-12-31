@@ -4,7 +4,9 @@
 
 > Interactive TUI for [git-worktree-runner](https://github.com/coderabbitai/git-worktree-runner) - Making worktree management practical for AI-driven development
 
-![gtri demo](demo.gif)
+| Worktrees Tab | Open PRs Tab |
+|---------------|--------------|
+| ![Worktrees](screenshots/worktrees.png) | ![Open PRs](screenshots/open-prs.png) |
 
 ## Why gtri?
 

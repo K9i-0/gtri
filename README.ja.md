@@ -4,7 +4,9 @@
 
 > [git-worktree-runner](https://github.com/coderabbitai/git-worktree-runner) のインタラクティブTUI - AI駆動開発でworktree管理を実用的に
 
-![gtri demo](demo.gif)
+| Worktreesタブ | Open PRsタブ |
+|---------------|--------------|
+| ![Worktrees](screenshots/worktrees.png) | ![Open PRs](screenshots/open-prs.png) |
 
 ## なぜ gtri？
 
