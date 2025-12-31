@@ -30,7 +30,9 @@
       "Bash(vhs:*)",
       "Bash(git gtr:*)",
       "Bash(xxd:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr create:*)"
     ]
   }
 }

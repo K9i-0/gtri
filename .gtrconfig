@@ -5,3 +5,6 @@
 [defaults]
 editor = cursor
 ai = claude
+
+[copy]
+include = .claude/settings.local.json
