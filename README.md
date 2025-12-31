@@ -52,6 +52,18 @@ ai = claude
 
 gtri automatically uses these settings when launching editor/AI or creating worktrees.
 
+### gtri-specific settings
+
+gtri saves your preferences in `.gtrconfig` for the create worktree dialog:
+
+```ini
+[gtri "create"]
+baseBranchMode = fromCurrent  # default, fromSelected, or fromCurrent
+openEditor = true             # auto-open editor after creation
+```
+
+These settings are automatically saved when you successfully create a worktree and will be used as defaults next time.
+
 ## Features
 
 - **Two-tab interface**: Worktrees tab + Open PRs tab
@@ -114,7 +126,25 @@ gtri help         # Show help
 | `a` | Copy AI command to clipboard |
 | `c` | Copy worktree path |
 | `d` | Delete worktree |
+| `n` | Create new worktree |
 | `p` | Open PR in browser |
+
+#### Create New Worktree Dialog
+
+Press `n` to open the create worktree dialog:
+
+| Key | Action |
+|-----|--------|
+| `Tab` | Move to next field |
+| `↑` / `↓` | Select base branch option |
+| `Space` | Toggle "Open editor" checkbox |
+| `Enter` | Create worktree |
+| `Esc` | Cancel |
+
+**Base branch options:**
+- **Default branch**: Create from main/master
+- **From selected**: Create from the currently selected worktree's branch
+- **From current (main repo)**: Create from the branch checked out in main repo
 
 ### Open PRs Tab
 
