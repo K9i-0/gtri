@@ -11,6 +11,7 @@
 ### CHANGELOGから把握した最新機能（未反映）
 | バージョン | 機能 | READMEへの反映 |
 |-----------|------|---------------|
+| v1.5.0 | **PRタブ追加**（PR #9） - Open PR一覧表示、`w`キーでworktree作成 | ❌ |
 | v1.4.0 | 削除UX改善（スピナー、即時反映） | ❌ |
 | v1.3.0 | 起動時バージョンチェック・更新通知 | ❌ |
 | v1.2.0 | PR情報表示（author, status, クリック可能リンク） | ❌ |
@@ -67,27 +68,80 @@ gtri is designed for **team development on medium to large projects**:
 - **Zero Context Switching**: No need to stash or commit WIP changes
 ```
 
-#### 2.2 「gtrとの併用」セクション
+#### 2.2 「gtrとgtriの使い分け」セクション（重要）
+
+##### Worktree作成の使い分け
+
+```markdown
+## Creating Worktrees: gtr vs gtri
+
+| Scenario | Tool | Command |
+|----------|------|---------|
+| **Your own task** | gtr | `gtr new feature/my-task` |
+| **Reviewing others' PRs** | gtri | PRs tab → `w` key |
+
+### Why This Makes Sense
+
+**For your own tasks → `gtr new`**
+- You need to **name the branch** yourself
+- You may want to configure hooks in `.gtrconfig`
+- Long-lived worktree (until feature complete)
+
+**For PR reviews → gtri PRs tab**
+- Branch name **already exists** (created by PR author)
+- Just need to check out and review
+- Short-lived worktree (until review complete)
+- See PR metadata (author, draft status) before creating
+```
+
+##### 情報フローの違い
+
+```
+自分のタスク:
+  Issue/要件 → ブランチ名を考える → gtr new feature/xxx
+               ~~~~~~~~~~~~~~~~~~~~
+               命名の意思決定が必要
+
+他人のPRレビュー:
+  gtri PRタブ → PR選択 → w キー → worktree作成
+                ~~~~~~~~
+                選ぶだけ（命名不要）
+```
+
+##### なぜこの使い分けが合理的か
+
+| 観点 | 自分のタスク (gtr) | PRレビュー (gtri) |
+|------|-------------------|------------------|
+| ブランチ名 | 自分で命名 | 既に存在 |
+| 必要な情報 | Issue/要件 | PR一覧・author・status |
+| 設定 | `.gtrconfig`でフック等 | 最小限でOK |
+| 寿命 | 長期（開発完了まで） | 短期（レビュー完了まで） |
+| 頻度 | 低（1タスク1回） | 高（複数PR並行レビュー） |
+| 最適UI | CLI（タイプが必要） | TUI（選択するだけ） |
+
+##### README記載案
+
 ```markdown
 ## gtr + gtri Workflow
 
-| Tool | Role |
-|------|------|
-| `gtr` | Create worktrees, configure `.gtrconfig`, set hooks |
-| `gtri` | Interactive management, navigation, AI/editor launch |
+### Initial Setup (once)
 
-### Recommended Setup
+Configure gtr with your preferred tools:
 
-1. Configure gtr first:
-   ```bash
-   gtr config set gtr.editor.default cursor
-   gtr config set gtr.ai.default claude
-   ```
+\`\`\`bash
+gtr config set gtr.editor.default cursor
+gtr config set gtr.ai.default claude
+\`\`\`
 
-2. Use gtri for daily work:
-   ```bash
-   gtri  # Launch TUI, navigate, open editor/AI
-   ```
+### Daily Workflow
+
+| Task | Tool | How |
+|------|------|-----|
+| Start your own feature | `gtr new feature/xxx` | Name your branch |
+| Review teammate's PR | `gtri` → PRs tab → `w` | Select from list |
+| Switch between worktrees | `gtri` → Worktrees tab | Navigate with j/k |
+| Open in editor/AI | `gtri` → `e` or `a` | One keypress |
+| Clean up after merge | `gtri` → `d` | Delete worktree |
 ```
 
 #### 2.3 「PRレビューワークフロー」セクション
@@ -121,10 +175,16 @@ gtri is designed for **team development on medium to large projects**:
 - Tab（Createタブへの切り替え）
 - Createタブでのナビゲーション
 
-# 追加する部分
-+ PR情報が表示されている状態の表示
-+ `p`キーでPRを開く操作
-+ `d`キーでworktree削除（スピナー表示）
+# 追加する部分（v1.5.0 PRタブ対応）
++ Worktreesタブでの操作
+  + PR情報が表示されている状態
+  + `p`キーでPRを開く
+  + `d`キーでworktree削除（スピナー表示）
++ PRsタブでの操作（NEW - PR #9）
+  + Tab キーでPRsタブに切り替え
+  + Open PR一覧の表示
+  + `w`キーでworktree作成（スピナー表示）
+  + 作成後Worktreesタブに自動切り替わる様子
 ```
 
 ### 4. 中規模以上プロジェクト向けアピール
