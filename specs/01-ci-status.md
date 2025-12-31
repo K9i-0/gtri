@@ -9,6 +9,7 @@ PRに紐づくGitHub Actionsの実行状況をWorktreeリストおよびOpen PRs
 - 現状、CIの状態を確認するには `gh run list` や GitHub Web UIを開く必要がある
 - レビュー前にCIが通っているか確認したい
 - CI失敗時に素早く対処したい
+- **WorktreeタブとPRタブでPR情報の表示ロジックが重複している**
 
 ## ユースケース
 
@@ -115,6 +116,258 @@ interface PRInfo {
 }
 ```
 
+## UI共通化
+
+CI機能の実装に合わせて、WorktreeタブとPRタブで重複しているUIロジックを共通化する。
+
+### 現状の課題
+
+| ファイル | 行数 | 問題 |
+|---------|-----|------|
+| WorktreeList.tsx | 26行 | PRList.tsxとほぼ同一のスクロール・選択ロジック |
+| PRList.tsx | 27行 | WorktreeList.tsxとほぼ同一 |
+| WorktreeItem.tsx | 95行 | PR表示ロジックが埋め込まれている |
+| PRItem.tsx | 63行 | 同様のPR表示ロジック |
+
+### 共通化する新規コンポーネント
+
+#### 1. CIStatusIcon.tsx
+
+CIステータスをアイコンで表示する共通コンポーネント:
+
+```typescript
+// src/components/CIStatusIcon.tsx
+import { Text } from 'ink';
+
+interface Props {
+  status: CIStatus | undefined;
+}
+
+export function CIStatusIcon({ status }: Props) {
+  switch (status) {
+    case 'success':
+      return <Text color="green">✓</Text>;
+    case 'failure':
+      return <Text color="red">✗</Text>;
+    case 'running':
+    case 'pending':
+      return <Text color="yellow">⏳</Text>;
+    case 'skipped':
+      return <Text dimColor>⊘</Text>;
+    default:
+      return <Text dimColor>○</Text>;
+  }
+}
+```
+
+#### 2. PRBadge.tsx
+
+PR情報（番号、状態、CI、著者）を表示する共通コンポーネント:
+
+```typescript
+// src/components/PRBadge.tsx
+import { Box, Text } from 'ink';
+import Link from 'ink-link';
+import { CIStatusIcon } from './CIStatusIcon';
+
+interface Props {
+  prInfo: PRInfo;
+  showState?: boolean;      // OPEN/MERGED/CLOSED を表示するか
+  showTitle?: boolean;      // タイトルを表示するか
+  maxTitleLength?: number;  // タイトルの最大長
+}
+
+export function PRBadge({ prInfo, showState = false, showTitle = false, maxTitleLength = 40 }: Props) {
+  const { number, state, title, url, author, isDraft, ci } = prInfo;
+
+  return (
+    <Box gap={1}>
+      {/* CI Status */}
+      <CIStatusIcon status={ci?.status} />
+
+      {/* PR State (optional) */}
+      {showState && (
+        <Text color={getStateColor(state)}>[{state}]</Text>
+      )}
+
+      {/* Draft badge */}
+      {isDraft && <Text dimColor>[Draft]</Text>}
+
+      {/* PR number with link */}
+      <Link url={url}>
+        <Text color="cyan">#{number}</Text>
+      </Link>
+
+      {/* Author */}
+      <Link url={`https://github.com/${author.login}`}>
+        <Text color="yellow">@{author.login}</Text>
+      </Link>
+
+      {/* Title (optional) */}
+      {showTitle && (
+        <Text>{truncateTitle(title, maxTitleLength)}</Text>
+      )}
+    </Box>
+  );
+}
+
+function getStateColor(state: PRInfo['state']): string {
+  switch (state) {
+    case 'OPEN': return 'green';
+    case 'MERGED': return 'magenta';
+    case 'CLOSED': return 'red';
+  }
+}
+
+function truncateTitle(title: string, maxLength: number): string {
+  return title.length > maxLength
+    ? title.substring(0, maxLength - 3) + '...'
+    : title;
+}
+```
+
+#### 3. ScrollableList.tsx
+
+スクロール可能なリストの共通コンポーネント:
+
+```typescript
+// src/components/ScrollableList.tsx
+import { Box, Text } from 'ink';
+
+interface Props<T> {
+  items: T[];
+  selectedIndex: number;
+  renderItem: (item: T, index: number, isSelected: boolean) => React.ReactNode;
+  getKey: (item: T) => string | number;
+  visibleCount?: number;
+}
+
+const DEFAULT_VISIBLE_COUNT = 7;
+
+export function ScrollableList<T>({
+  items,
+  selectedIndex,
+  renderItem,
+  getKey,
+  visibleCount = DEFAULT_VISIBLE_COUNT
+}: Props<T>) {
+  // 選択項目を中央に保つためのスクロール計算
+  const halfVisible = Math.floor(visibleCount / 2);
+  let startIndex = Math.max(0, selectedIndex - halfVisible);
+  const endIndex = Math.min(items.length, startIndex + visibleCount);
+
+  if (endIndex - startIndex < visibleCount) {
+    startIndex = Math.max(0, endIndex - visibleCount);
+  }
+
+  const visibleItems = items.slice(startIndex, endIndex);
+  const hasMoreAbove = startIndex > 0;
+  const hasMoreBelow = endIndex < items.length;
+
+  return (
+    <Box flexDirection="column">
+      {hasMoreAbove && (
+        <Box marginLeft={2}>
+          <Text dimColor>↑ more ({startIndex})</Text>
+        </Box>
+      )}
+
+      {visibleItems.map((item, i) => {
+        const actualIndex = startIndex + i;
+        return (
+          <Box key={getKey(item)}>
+            {renderItem(item, actualIndex, actualIndex === selectedIndex)}
+          </Box>
+        );
+      })}
+
+      {hasMoreBelow && (
+        <Box marginLeft={2}>
+          <Text dimColor>↓ more ({items.length - endIndex})</Text>
+        </Box>
+      )}
+    </Box>
+  );
+}
+```
+
+### リファクタリング後の構成
+
+```
+src/components/
+├── common/
+│   ├── CIStatusIcon.tsx      # NEW: CIアイコン
+│   ├── PRBadge.tsx           # NEW: PR情報バッジ
+│   └── ScrollableList.tsx    # NEW: 汎用リスト
+├── WorktreeList.tsx          # ScrollableListを使用
+├── WorktreeItem.tsx          # PRBadgeを使用
+├── PRList.tsx                # ScrollableListを使用
+└── PRItem.tsx                # PRBadgeを使用
+```
+
+### 使用例
+
+#### WorktreeItem.tsx（リファクタ後）
+
+```typescript
+export function WorktreeItem({ worktree, isSelected, index, prLoading }: Props) {
+  return (
+    <Box flexDirection="column">
+      {/* Line 1: Branch info */}
+      <Box gap={1}>
+        <Text>{worktree.isMain ? '★' : '○'}</Text>
+        <Text color={isSelected ? 'green' : undefined}>{worktree.branch}</Text>
+        <Text dimColor>{worktree.shortHash}</Text>
+        <Text dimColor>({index + 1})</Text>
+      </Box>
+
+      {/* Line 2: Path */}
+      <Box marginLeft={4}>
+        <Text dimColor>{worktree.path}</Text>
+      </Box>
+
+      {/* Line 3: PR info (using shared component) */}
+      {prLoading ? (
+        <Box marginLeft={4}>
+          <Text dimColor>Loading PR...</Text>
+        </Box>
+      ) : worktree.prInfo && (
+        <Box marginLeft={4}>
+          <PRBadge prInfo={worktree.prInfo} showState />
+        </Box>
+      )}
+    </Box>
+  );
+}
+```
+
+#### PRItem.tsx（リファクタ後）
+
+```typescript
+export function PRItem({ pr, isSelected, index, isCreating }: Props) {
+  return (
+    <Box flexDirection="column">
+      {/* Line 1: PR info (using shared component) */}
+      <Box gap={1}>
+        <PRBadge prInfo={pr} showTitle maxTitleLength={50} />
+        <Text dimColor>({index + 1})</Text>
+      </Box>
+
+      {/* Line 2: Branch info */}
+      <Box marginLeft={4}>
+        <Text dimColor>Branch: {pr.headRefName}</Text>
+      </Box>
+
+      {isCreating && (
+        <Box marginLeft={4}>
+          <Text color="yellow">Creating worktree...</Text>
+        </Box>
+      )}
+    </Box>
+  );
+}
+```
+
 ### 実装箇所
 
 #### 1. lib/gtr.ts
@@ -205,10 +458,19 @@ interface CICache {
 
 ## 実装優先度
 
-1. **Phase 1**: 基本的なCIステータス表示（アイコンのみ）
-2. **Phase 2**: 詳細表示（`s` キー）
-3. **Phase 3**: GitHub Actions Webページを開く（`S` キー）
-4. **Phase 4**: キャッシュ・パフォーマンス最適化
+1. **Phase 1**: UI共通化（リファクタリング）
+   - CIStatusIcon.tsx 作成
+   - PRBadge.tsx 作成
+   - ScrollableList.tsx 作成
+   - WorktreeItem.tsx / PRItem.tsx をリファクタ
+   - WorktreeList.tsx / PRList.tsx をリファクタ
+2. **Phase 2**: 基本的なCIステータス表示（アイコンのみ）
+   - PRInfo に ci フィールド追加
+   - getPRInfoBatch で statusCheckRollup を取得
+   - PRBadge で CIStatusIcon を表示
+3. **Phase 3**: 詳細表示（`s` キー）
+4. **Phase 4**: GitHub Actions Webページを開く（`S` キー）
+5. **Phase 5**: キャッシュ・パフォーマンス最適化
 
 ## 依存関係
 
