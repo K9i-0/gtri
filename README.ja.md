@@ -126,6 +126,21 @@ gtri help         # ヘルプ表示
 - [git-worktree-runner](https://github.com/coderabbitai/git-worktree-runner) がインストールされていること
 - [GitHub CLI (gh)](https://cli.github.com/) PR機能に必要
 
+## 技術スタック
+
+| 技術 | 用途 |
+|------|------|
+| [Bun](https://bun.sh/) | ランタイム、バンドラー、テストランナー、単一バイナリコンパイラ |
+| [TypeScript](https://www.typescriptlang.org/) | 型安全な開発 |
+| [React](https://react.dev/) + [Ink](https://github.com/vadimdemedes/ink) | Reactコンポーネントによるターミナルui |
+
+### 特徴
+
+- **薄いラッパー**: コア機能は実績あるツール（[gtr](https://github.com/coderabbitai/git-worktree-runner)、[gh](https://cli.github.com/)、git）に依存 - gtriは使いやすいUIを提供するだけ
+- **単一バイナリ配布**: `bun build --compile` でランタイム不要のスタンドアロン実行ファイルを生成
+- **クロスプラットフォーム**: darwin-arm64, darwin-x64, linux-x64 向けにビルド
+- **CLIにReact**: 馴染みのあるReactパターンで宣言的なターミナルUIを構築
+
 ## ライセンス
 
 MIT

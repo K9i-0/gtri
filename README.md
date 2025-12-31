@@ -126,6 +126,21 @@ gtri help         # Show help
 - [git-worktree-runner](https://github.com/coderabbitai/git-worktree-runner) must be installed
 - [GitHub CLI (gh)](https://cli.github.com/) for PR features
 
+## Tech Stack
+
+| Technology | Usage |
+|------------|-------|
+| [Bun](https://bun.sh/) | Runtime, bundler, test runner, single-binary compiler |
+| [TypeScript](https://www.typescriptlang.org/) | Type-safe development |
+| [React](https://react.dev/) + [Ink](https://github.com/vadimdemedes/ink) | Terminal UI with React components |
+
+### Highlights
+
+- **Thin wrapper**: Core functionality relies on battle-tested tools ([gtr](https://github.com/coderabbitai/git-worktree-runner), [gh](https://cli.github.com/), git) - gtri just provides a friendly UI
+- **Single binary distribution**: `bun build --compile` creates a standalone executable with no runtime dependencies
+- **Cross-platform**: Builds for darwin-arm64, darwin-x64, linux-x64
+- **React for CLI**: Declarative terminal UI using familiar React patterns
+
 ## License
 
 MIT
