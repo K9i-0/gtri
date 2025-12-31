@@ -1,3 +1,7 @@
 [hooks]
   postCreate = mise install
   postCreate = bun install
+
+[defaults]
+editor = cursor
+ai = claude
