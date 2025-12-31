@@ -40,7 +40,7 @@ setup_demo() {
   cleanup_demo
 
   echo ""
-  echo "Creating demo branches..."
+  echo "Creating demo branches and PRs..."
 
   # worktreeありのブランチ（3つ）
   echo "  - feature/user-auth (with worktree)"
@@ -55,15 +55,24 @@ setup_demo() {
   git push origin main:fix/login-bug 2>/dev/null || true
   git gtr new origin/fix/login-bug --yes
 
-  # リモートのみのブランチ（Createタブ用）
-  echo "  - feature/search-filter (remote only)"
+  # PRありのブランチ（Open PRsタブ用）
+  echo "  - feature/search-filter (with PR, no worktree)"
   git push origin main:feature/search-filter
+  gh pr create --base main --head feature/search-filter \
+    --title "feat: add search filter functionality" \
+    --body "Demo PR for gtri" 2>/dev/null || true
 
-  echo "  - feature/api-v2 (remote only)"
+  echo "  - feature/api-v2 (with PR, no worktree)"
   git push origin main:feature/api-v2
+  gh pr create --base main --head feature/api-v2 \
+    --title "feat: implement API v2 endpoints" \
+    --body "Demo PR for gtri" 2>/dev/null || true
 
-  echo "  - feature/notifications (remote only)"
+  echo "  - feature/notifications (with PR, no worktree)"
   git push origin main:feature/notifications
+  gh pr create --base main --head feature/notifications \
+    --title "feat: add notification system" \
+    --body "Demo PR for gtri" 2>/dev/null || true
 
   git fetch origin
 
@@ -75,7 +84,7 @@ setup_demo() {
   echo "  - feature/dark-theme"
   echo "  - fix/login-bug"
   echo ""
-  echo "Remote branches (shown in Create tab):"
+  echo "Open PRs (shown in Open PRs tab):"
   echo "  - feature/search-filter"
   echo "  - feature/api-v2"
   echo "  - feature/notifications"
