@@ -54,7 +54,7 @@ gtri automatically uses these settings when launching editor/AI or creating work
 
 ### gtri-specific settings
 
-gtri saves your preferences in `.gtrconfig` for the create worktree dialog:
+gtri saves your personal preferences in local git config (`.git/config`) for the create worktree dialog:
 
 ```ini
 [gtri "create"]
@@ -62,7 +62,7 @@ baseBranchMode = fromCurrent  # default, fromSelected, or fromCurrent
 openEditor = true             # auto-open editor after creation
 ```
 
-These settings are automatically saved when you successfully create a worktree and will be used as defaults next time.
+These settings are stored per-repository and not shared with teammates. They are automatically saved when you successfully create a worktree and will be used as defaults next time.
 
 ## Features
 

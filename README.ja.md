@@ -54,7 +54,7 @@ gtri はエディタ/AI起動やworktree作成時にこれらの設定を自動�
 
 ### gtri固有の設定
 
-gtriはworktree作成ダイアログの設定を `.gtrconfig` に保存します：
+gtriはworktree作成ダイアログの個人設定をローカルgit config (`.git/config`) に保存します：
 
 ```ini
 [gtri "create"]
@@ -62,7 +62,7 @@ baseBranchMode = fromCurrent  # default, fromSelected, fromCurrent のいずれ�
 openEditor = true             # 作成後にエディタを自動で開く
 ```
 
-これらの設定はworktree作成成功時に自動保存され、次回のデフォルト値として使用されます。
+これらの設定はリポジトリごとに保存され、チームメンバーとは共有されません。worktree作成成功時に自動保存され、次回のデフォルト値として使用されます。
 
 ## 機能
 

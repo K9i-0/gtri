@@ -460,7 +460,7 @@ export async function openEditorAtPath(path: string): Promise<void> {
   });
 }
 
-// gtri 固有の設定
+// gtri 固有の設定（個人設定、チーム共有しない）
 export interface GtriCreateSettings {
   baseBranchMode: "default" | "fromSelected" | "fromCurrent";
   openEditor: boolean;
@@ -471,20 +471,13 @@ const DEFAULT_CREATE_SETTINGS: GtriCreateSettings = {
   openEditor: false,
 };
 
-// .gtrconfig から gtri の設定を読み込む
+// ローカルgit configから gtri の設定を読み込む
+// .git/config に保存されるため、チームで共有されない
 export async function getGtriCreateSettings(): Promise<GtriCreateSettings> {
-  const mainRepoPath = await getMainRepoPath();
-  if (!mainRepoPath) {
-    return DEFAULT_CREATE_SETTINGS;
-  }
-
-  const gtrconfigPath = `${mainRepoPath}/.gtrconfig`;
-
   // baseBranchMode を読み込む
   const baseModeResult = await runGitCommand([
     "config",
-    "-f",
-    gtrconfigPath,
+    "--local",
     "--get",
     "gtri.create.baseBranchMode",
   ]);
@@ -497,8 +490,7 @@ export async function getGtriCreateSettings(): Promise<GtriCreateSettings> {
   // openEditor を読み込む
   const openEditorResult = await runGitCommand([
     "config",
-    "-f",
-    gtrconfigPath,
+    "--local",
     "--get",
     "gtri.create.openEditor",
   ]);
@@ -510,22 +502,15 @@ export async function getGtriCreateSettings(): Promise<GtriCreateSettings> {
   return { baseBranchMode, openEditor };
 }
 
-// .gtrconfig に gtri の設定を保存する
+// ローカルgit configに gtri の設定を保存する
+// .git/config に保存されるため、チームで共有されない
 export async function saveGtriCreateSettings(
   settings: Partial<GtriCreateSettings>
 ): Promise<void> {
-  const mainRepoPath = await getMainRepoPath();
-  if (!mainRepoPath) {
-    return;
-  }
-
-  const gtrconfigPath = `${mainRepoPath}/.gtrconfig`;
-
   if (settings.baseBranchMode !== undefined) {
     await runGitCommand([
       "config",
-      "-f",
-      gtrconfigPath,
+      "--local",
       "gtri.create.baseBranchMode",
       settings.baseBranchMode,
     ]);
@@ -534,8 +519,7 @@ export async function saveGtriCreateSettings(
   if (settings.openEditor !== undefined) {
     await runGitCommand([
       "config",
-      "-f",
-      gtrconfigPath,
+      "--local",
       "gtri.create.openEditor",
       settings.openEditor ? "true" : "false",
     ]);
