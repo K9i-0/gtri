@@ -26,11 +26,29 @@
 | Task | Tool | Why |
 |------|------|-----|
 | Create worktree for your task | `gtr new` | Specify base branch explicitly |
-| Configure hooks, settings | `gtr config` | One-time setup |
+| Configure hooks, settings | `.gtrconfig` | Team-shared configuration |
 | Manage existing worktrees | `gtri` | Visual navigation, quick actions |
 | Review teammates' PRs | `gtri` | See PRs, create worktree instantly |
 
 **gtri is ideal for mid-to-large team projects** where you frequently switch between your own work and reviewing others' PRs.
+
+### Setting up .gtrconfig
+
+gtr supports a [`.gtrconfig`](https://github.com/coderabbitai/git-worktree-runner?tab=readme-ov-file#configuration) file for team-shared settings. Commit it to your repo:
+
+```ini
+[files]
+include = .env.local, .env.development
+
+[hooks]
+postCreate = mise install, bun install
+
+[defaults]
+editor = cursor
+ai = claude
+```
+
+gtri automatically uses these settings when launching editor/AI or creating worktrees.
 
 ## Features
 

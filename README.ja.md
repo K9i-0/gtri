@@ -26,11 +26,29 @@
 | タスク | ツール | 理由 |
 |--------|--------|------|
 | 自分のタスク用worktree作成 | `gtr new` | ベースブランチを明示的に指定 |
-| フック・設定の構成 | `gtr config` | 初回セットアップ |
+| フック・設定の構成 | `.gtrconfig` | チーム共有設定 |
 | 既存worktreeの管理 | `gtri` | 視覚的なナビゲーション、クイックアクション |
 | チームメンバーのPRレビュー | `gtri` | PRを見て、即座にworktree作成 |
 
 **gtri は中〜大規模のチームプロジェクトに最適** - 自分の作業と他者のPRレビューを頻繁に切り替える場面で力を発揮します。
+
+### .gtrconfig のセットアップ
+
+gtr はチーム共有設定用の [`.gtrconfig`](https://github.com/coderabbitai/git-worktree-runner?tab=readme-ov-file#configuration) ファイルをサポートしています。リポジトリにコミットしておきましょう：
+
+```ini
+[files]
+include = .env.local, .env.development
+
+[hooks]
+postCreate = mise install, bun install
+
+[defaults]
+editor = cursor
+ai = claude
+```
+
+gtri はエディタ/AI起動やworktree作成時にこれらの設定を自動的に使用します。
 
 ## 機能
 
