@@ -111,16 +111,55 @@ async function getUpstreamBranch(branch: string): Promise<string | undefined> {
   return stdout.replace(/^refs\/heads\//, "");
 }
 
+// Get config value with .gtrconfig fallback (mirrors gtr's cfg_default)
+// Priority: local git config > .gtrconfig > global/system git config
+async function getConfigValue(
+  gitKey: string,
+  gtrconfigKey: string
+): Promise<string> {
+  // 1. Try local git config first (highest priority)
+  const localResult = await runGitCommand([
+    "config",
+    "--local",
+    "--get",
+    gitKey,
+  ]);
+  if (localResult.exitCode === 0 && localResult.stdout) {
+    return localResult.stdout;
+  }
+
+  // 2. Try .gtrconfig file
+  const mainRepoPath = await getMainRepoPath();
+  if (mainRepoPath) {
+    const gtrconfigPath = `${mainRepoPath}/.gtrconfig`;
+    const gtrconfigResult = await runGitCommand([
+      "config",
+      "-f",
+      gtrconfigPath,
+      "--get",
+      gtrconfigKey,
+    ]);
+    if (gtrconfigResult.exitCode === 0 && gtrconfigResult.stdout) {
+      return gtrconfigResult.stdout;
+    }
+  }
+
+  // 3. Try global/system git config
+  const globalResult = await runGitCommand(["config", "--get", gitKey]);
+  if (globalResult.exitCode === 0 && globalResult.stdout) {
+    return globalResult.stdout;
+  }
+
+  return "none";
+}
+
 export async function getConfig(): Promise<GtrConfig> {
-  const [editorResult, aiResult] = await Promise.all([
-    runCommand(["config", "get", "gtr.editor.default"]),
-    runCommand(["config", "get", "gtr.ai.default"]),
+  const [editor, ai] = await Promise.all([
+    getConfigValue("gtr.editor.default", "defaults.editor"),
+    getConfigValue("gtr.ai.default", "defaults.ai"),
   ]);
 
-  return {
-    editor: editorResult.stdout || "none",
-    ai: aiResult.stdout || "none",
-  };
+  return { editor, ai };
 }
 
 export async function openEditor(branch: string): Promise<void> {
