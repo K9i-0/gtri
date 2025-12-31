@@ -1,6 +1,7 @@
 import { Box, Text } from "ink";
-import type { Worktree } from "../types/worktree.ts";
+import type { Worktree, PendingWorktree } from "../types/worktree.ts";
 import { WorktreeItem } from "./WorktreeItem.tsx";
+import { PendingWorktreeItem } from "./PendingWorktreeItem.tsx";
 
 const VISIBLE_COUNT = 7;
 
@@ -9,9 +10,10 @@ interface WorktreeListProps {
   selectedIndex: number;
   prLoading?: boolean;
   deletingBranch?: string | null;
+  pendingWorktrees?: PendingWorktree[];
 }
 
-export function WorktreeList({ worktrees, selectedIndex, prLoading, deletingBranch }: WorktreeListProps) {
+export function WorktreeList({ worktrees, selectedIndex, prLoading, deletingBranch, pendingWorktrees = [] }: WorktreeListProps) {
   // Calculate visible range (keep selected item near center)
   const startIndex = Math.max(
     0,
@@ -50,6 +52,10 @@ export function WorktreeList({ worktrees, selectedIndex, prLoading, deletingBran
           <Text dimColor>↓ more ({worktrees.length - endIndex})</Text>
         </Box>
       )}
+      {/* Pending worktrees */}
+      {pendingWorktrees.map((pending) => (
+        <PendingWorktreeItem key={pending.id} pending={pending} />
+      ))}
     </Box>
   );
 }
