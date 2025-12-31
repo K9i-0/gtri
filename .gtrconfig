@@ -2,9 +2,5 @@
   postCreate = mise install
   postCreate = bun install
 
-[defaults]
-editor = cursor
-ai = claude
-
 [copy]
 include = .claude/settings.local.json
