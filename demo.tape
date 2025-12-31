@@ -33,13 +33,14 @@ Sleep 1.5s
 Type "a"
 Sleep 1.5s
 
-# === Create Tab ===
+# === Open PRs Tab ===
+# Review PRs easily - create worktree with one key
 
-# Switch to Create tab
+# Switch to Open PRs tab
 Tab
 Sleep 1.5s
 
-# Navigate branches
+# Navigate PRs
 Type "j"
 Sleep 0.8s
 Type "j"

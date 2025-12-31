@@ -2,16 +2,43 @@
 
 [English](README.md)
 
-> [git-worktree-runner](https://github.com/coderabbitai/git-worktree-runner) のインタラクティブTUI
+> [git-worktree-runner](https://github.com/coderabbitai/git-worktree-runner) のインタラクティブTUI - AI駆動開発でworktree管理を実用的に
 
 ![gtri demo](demo.gif)
 
+## なぜ gtri？
+
+[git-worktree-runner (gtr)](https://github.com/coderabbitai/git-worktree-runner) はgit worktreeを管理する強力なツールで、AI駆動開発で特に便利です。しかし、日常的なworktree操作は手間がかかります：
+
+- **gtr list** でworktreeを確認できますが、削除やPR確認、AIツール起動には追加コマンドが必要
+- チームメンバーのPRをレビューするには、ブランチ名を調べてworktreeを手動で作成する必要がある
+
+**gtri** はgtrをインタラクティブなTUIでラップし、これらのワークフローをスムーズにします：
+
+| Worktreesタブ | Open PRsタブ |
+|---------------|--------------|
+| 既存worktreeの管理 | チームメンバーのPRレビュー |
+| ワンキーでエディタ/AI起動 | ワンキーでworktree作成 |
+| PR状態を一目で確認 | worktreeのないPRを一覧 |
+
+## gtr と gtri の使い分け
+
+| タスク | ツール | 理由 |
+|--------|--------|------|
+| 自分のタスク用worktree作成 | `gtr new` | ベースブランチを明示的に指定 |
+| フック・設定の構成 | `gtr config` | 初回セットアップ |
+| 既存worktreeの管理 | `gtri` | 視覚的なナビゲーション、クイックアクション |
+| チームメンバーのPRレビュー | `gtri` | PRを見て、即座にworktree作成 |
+
+**gtri は中〜大規模のチームプロジェクトに最適** - 自分の作業と他者のPRレビューを頻繁に切り替える場面で力を発揮します。
+
 ## 機能
 
-- Vim/Emacs風キーバインド (j/k, Ctrl+N/P)
-- worktreeの素早いナビゲーションと管理
-- エディタ・AIツール連携
-- セルフアップデート機能
+- **2タブ構成**: Worktreesタブ + Open PRsタブ
+- **Worktreesタブ**: PR状態付きで全worktreeを表示（Draft表示対応）
+- **Open PRsタブ**: worktreeのないPRを一覧、`w`キーでworktree作成
+- **クイックアクション**: エディタ起動（`e`）、AIコマンドコピー（`a`）、削除（`d`）
+- **Vim/Emacsキーバインド**: j/k、Ctrl+N/Pでナビゲーション
 
 ## インストール
 
@@ -46,24 +73,40 @@ gtri help         # ヘルプ表示
 
 ## キーバインド
 
+### 共通
+
 | キー | 動作 |
 |------|------|
+| `Tab` | Worktrees/Open PRsタブを切り替え |
 | `j` / `↓` / `Ctrl+N` | 下に移動 |
 | `k` / `↑` / `Ctrl+P` | 上に移動 |
 | `g` / `Ctrl+A` | 先頭に移動 |
 | `G` / `Ctrl+E` | 末尾に移動 |
 | `1-9` | 番号で選択 |
+| `r` | リストを更新 |
+| `q` / `Esc` | 終了 |
+
+### Worktreesタブ
+
+| キー | 動作 |
+|------|------|
 | `e` | エディタで開く |
 | `a` | AIコマンドをクリップボードにコピー |
 | `c` | worktreeパスをコピー |
 | `d` | worktreeを削除 |
 | `p` | PRをブラウザで開く |
-| `r` | リストを更新 |
-| `q` / `Esc` | 終了 |
+
+### Open PRsタブ
+
+| キー | 動作 |
+|------|------|
+| `w` | 選択したPRのworktreeを作成 |
+| `p` | PRをブラウザで開く |
 
 ## 必要条件
 
 - [git-worktree-runner](https://github.com/coderabbitai/git-worktree-runner) がインストールされていること
+- [GitHub CLI (gh)](https://cli.github.com/) PR機能に必要
 
 ## ライセンス
 
