@@ -211,7 +211,7 @@ export async function getPRInfo(branch: string): Promise<PRInfo | null> {
     "--state",
     "all",
     "--json",
-    "number,title,url,state,author",
+    "number,title,url,state,author,isDraft",
     "--limit",
     "1",
   ]);
@@ -251,4 +251,47 @@ export async function openPRInBrowser(url: string): Promise<void> {
     stdout: "ignore",
     stderr: "ignore",
   });
+}
+
+// リポジトリの全てのOpen PRを取得
+export async function getOpenPRs(): Promise<PRInfo[]> {
+  const { stdout, exitCode } = await runGhCommand([
+    "pr",
+    "list",
+    "--state",
+    "open",
+    "--json",
+    "number,title,url,state,author,headRefName,isDraft",
+    "--limit",
+    "100",
+  ]);
+
+  if (exitCode !== 0 || !stdout) {
+    return [];
+  }
+
+  try {
+    return JSON.parse(stdout) as PRInfo[];
+  } catch {
+    return [];
+  }
+}
+
+export interface CreateWorktreeResult {
+  success: boolean;
+  path?: string;
+  error?: string;
+}
+
+// PRブランチからworktreeを作成
+export async function createWorktreeFromBranch(
+  branch: string
+): Promise<CreateWorktreeResult> {
+  const { stdout, stderr, exitCode } = await runCommand(["new", branch]);
+
+  if (exitCode === 0) {
+    return { success: true, path: stdout };
+  }
+
+  return { success: false, error: stderr || "Failed to create worktree" };
 }

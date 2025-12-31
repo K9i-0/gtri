@@ -77,6 +77,7 @@ export function WorktreeItem({ worktree, isSelected, index, prLoading, isDeletin
       ) : worktree.prInfo ? (
         <Box marginLeft={4}>
           <Text color={stateColor}>[{worktree.prInfo.state}]</Text>
+          {worktree.prInfo.isDraft && <Text color="gray"> [Draft]</Text>}
           <Text dimColor> </Text>
           <Link url={worktree.prInfo.url}>
             <Text color="cyan">#{worktree.prInfo.number}</Text>
