@@ -116,3 +116,43 @@ For more information, read the Bun API docs in `node_modules/bun-types/docs/**.m
 2. testや型チェックを行う (`bun run typecheck && bun test`)
 3. ビルドしたうえで動作確認を依頼 (`bun run build`)
 4. PRの作成まで行う
+
+## Screenshots Update
+
+READMEのスクリーンショットを更新する手順。[freeze](https://github.com/charmbracelet/freeze)を使用。
+
+### 必要なツール
+
+```bash
+brew install charmbracelet/tap/freeze
+```
+
+### 撮影手順
+
+```bash
+# 1. PRステータス表示用のworktreeを作成（必要に応じて）
+git gtr new feature/notifications --yes
+git gtr new feature/api-v2 --yes
+
+# 2. tmuxでgtriを起動（高さ32が適切）
+tmux new-session -d -s gtri-screenshot -x 90 -y 32 './gtri'
+
+# 3. Worktreesタブをキャプチャ（-e でANSI色を保持）
+sleep 3 && tmux capture-pane -t gtri-screenshot -e -p | freeze -l ansi -o screenshots/worktrees.png --window --shadow.blur 20 --padding 20
+
+# 4. Open PRsタブに切り替えてキャプチャ
+tmux send-keys -t gtri-screenshot Tab && sleep 1 && tmux capture-pane -t gtri-screenshot -e -p | freeze -l ansi -o screenshots/open-prs.png --window --shadow.blur 20 --padding 20
+
+# 5. クリーンアップ
+tmux kill-session -t gtri-screenshot
+git gtr rm feature/notifications --yes
+git gtr rm feature/api-v2 --yes
+```
+
+### freezeオプション
+
+- `-l ansi`: ANSI出力として解釈
+- `--window`: macOS風ウィンドウ枠
+- `--shadow.blur 20`: シャドウ
+- `--padding 20`: 内側余白
+- `-e` (tmux): ANSI色を保持
