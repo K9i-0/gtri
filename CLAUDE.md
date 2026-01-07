@@ -117,6 +117,38 @@ For more information, read the Bun API docs in `node_modules/bun-types/docs/**.m
 3. ビルドしたうえで動作確認を依頼 (`bun run build`)
 4. PRの作成まで行う
 
+## E2E Testing
+
+E2Eテストは `e2e/` ディレクトリで **Node.js + node-pty + Jest** を使用。
+
+```bash
+# ユニットテストのみ
+bun run test
+
+# E2Eテストのみ
+bun run test:e2e
+
+# 両方実行
+bun run test:all
+```
+
+### なぜ Node.js を使うのか
+
+- node-pty (PTY操作ライブラリ) が必要だが、Bun ランタイムと互換性がない
+- Bun.Terminal API は存在するが不安定 (Bun 1.3.5 時点)
+- ink 本体も E2E テストには Node.js を使用している
+
+### node-pty の注意点
+
+macOS で `posix_spawnp failed` エラーが出る場合、`spawn-helper` の実行権限が欠落している。
+npm パッケージの tarball に実行権限が含まれない既知の問題。
+
+```bash
+chmod +x e2e/node_modules/node-pty/prebuilds/darwin-*/spawn-helper
+```
+
+`npm test` スクリプトに自動修正を含めているため、通常は手動対応不要。
+
 ## Screenshots Update
 
 READMEのスクリーンショットを更新する手順。[freeze](https://github.com/charmbracelet/freeze)を使用。

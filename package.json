@@ -12,7 +12,9 @@
     "build:darwin-x64": "bun build src/index.tsx --compile --target=bun-darwin-x64 --outfile dist/gtri-darwin-x64",
     "build:linux-x64": "bun build src/index.tsx --compile --target=bun-linux-x64 --outfile dist/gtri-linux-x64",
     "typecheck": "tsc --noEmit",
-    "test": "bun test"
+    "test": "bun test src/",
+    "test:e2e": "cd e2e && npm test",
+    "test:all": "bun run test && bun run test:e2e"
   },
   "repository": {
     "type": "git",
@@ -27,8 +29,7 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@types/react": "^19.2.7",
-    "ink-testing-library": "^4.0.0",
-    "node-pty": "^1.1.0"
+    "ink-testing-library": "^4.0.0"
   },
   "peerDependencies": {
     "typescript": "^5"
