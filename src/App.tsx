@@ -153,11 +153,11 @@ export function App() {
         actionSelect.close();
         return;
       }
-      if (key.upArrow || input === "k") {
+      if (key.upArrow || input === "k" || (key.ctrl && input === "p")) {
         actionSelect.moveUp();
         return;
       }
-      if (key.downArrow || input === "j") {
+      if (key.downArrow || input === "j" || (key.ctrl && input === "n")) {
         actionSelect.moveDown();
         return;
       }
