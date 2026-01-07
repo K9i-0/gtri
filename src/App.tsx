@@ -15,6 +15,15 @@ import { ConfirmDialog } from "./components/ConfirmDialog.tsx";
 import { CreateWorktreeDialog } from "./components/CreateWorktreeDialog.tsx";
 import { ActionSelectDialog } from "./components/ActionSelectDialog.tsx";
 import { openPRInBrowser } from "./lib/gtr.ts";
+import {
+  isMoveUp,
+  isMoveDown,
+  isMoveToTop,
+  isMoveToBottom,
+  isQuit,
+  isConfirm,
+  isCancel,
+} from "./lib/keybindings.ts";
 import type { TabType } from "./types/worktree.ts";
 
 export function App() {
@@ -134,7 +143,7 @@ export function App() {
 
     // Create worktree dialog mode
     if (createWorktreeHook.isDialogOpen) {
-      if (key.escape) {
+      if (isCancel(key)) {
         createWorktreeHook.closeDialog();
         return;
       }
@@ -149,19 +158,19 @@ export function App() {
 
     // Action select dialog mode
     if (actionSelect.isOpen) {
-      if (key.escape) {
+      if (isCancel(key)) {
         actionSelect.close();
         return;
       }
-      if (key.upArrow || input === "k" || (key.ctrl && input === "p")) {
+      if (isMoveUp(input, key)) {
         actionSelect.moveUp();
         return;
       }
-      if (key.downArrow || input === "j" || (key.ctrl && input === "n")) {
+      if (isMoveDown(input, key)) {
         actionSelect.moveDown();
         return;
       }
-      if (key.return) {
+      if (isConfirm(key)) {
         actionSelect.executeSelected();
         return;
       }
@@ -202,25 +211,25 @@ export function App() {
     }
 
     // Quit
-    if (input === "q" || key.escape) {
+    if (isQuit(input, key)) {
       exit();
       return;
     }
 
     // Navigation (works for both tabs)
-    if (input === "j" || key.downArrow || (key.ctrl && input === "n")) {
+    if (isMoveDown(input, key)) {
       currentNav.moveDown();
       return;
     }
-    if (input === "k" || key.upArrow || (key.ctrl && input === "p")) {
+    if (isMoveUp(input, key)) {
       currentNav.moveUp();
       return;
     }
-    if (input === "g" || (key.ctrl && input === "a")) {
+    if (isMoveToTop(input, key)) {
       currentNav.moveToTop();
       return;
     }
-    if (input === "G" || (key.ctrl && input === "e")) {
+    if (isMoveToBottom(input, key)) {
       currentNav.moveToBottom();
       return;
     }
@@ -237,7 +246,7 @@ export function App() {
     }
 
     // Enter to open action select dialog
-    if (key.return) {
+    if (isConfirm(key)) {
       if (activeTab === "worktrees") {
         const selected = worktrees[worktreeNav.selectedIndex];
         if (selected) {
