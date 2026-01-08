@@ -9,7 +9,6 @@ import { isMoveUp, isMoveDown } from "../lib/keybindings.ts";
 interface CreateWorktreeDialogProps {
   state: CreateWorktreeDialogState;
   onBranchNameChange: (name: string) => void;
-  onBaseBranchChange: (mode: BaseBranchMode) => void;
   onToggleOpenEditor: () => void;
   onSubmit: () => void;
   onCancel: () => void;
@@ -108,14 +107,17 @@ function SelectBaseStep({ state, onSelect, onCancel }: SelectBaseStepProps) {
   });
 
   useInput((input, key) => {
-    // 数字キーでクイック選択
+    // 数字キーでクイック選択（即座に確定）
     const numKey = parseInt(input, 10);
     if (numKey >= 1 && numKey <= options.length) {
-      onSelect(numKey - 1);
+      const targetIndex = numKey - 1;
+      // 数字キーは即座に確定するため、まずインデックスを更新し、次のティックで確定
+      onSelect(targetIndex);
+      setTimeout(() => onSelect(targetIndex), 0);
       return;
     }
 
-    // j/k/上下キーで選択
+    // j/k/上下キーで選択（ナビゲーションのみ）
     if (isMoveUp(input, key)) {
       const newIndex =
         selectedBaseIndex <= 0 ? options.length - 1 : selectedBaseIndex - 1;
@@ -219,18 +221,14 @@ function ChooseBranchStep({
   );
 
   useInput((input, key) => {
-    // Escでキャンセル、フィルタが空の時はBack
+    // Escで常にBack（前のステップに戻る）
     if (key.escape) {
-      if (branchFilter === "") {
-        onBack();
-      } else {
-        onCancel();
-      }
+      onBack();
       return;
     }
 
-    // j/k/上下キーで選択
-    if (isMoveUp(input, key)) {
+    // 上下矢印キーのみで選択（j/kはフィルター入力と競合するため使わない）
+    if (key.upArrow) {
       const newIndex =
         selectedBranchIndex <= 0
           ? filteredBranches.length - 1
@@ -238,7 +236,7 @@ function ChooseBranchStep({
       onIndexChange(newIndex);
       return;
     }
-    if (isMoveDown(input, key)) {
+    if (key.downArrow) {
       const newIndex =
         selectedBranchIndex >= filteredBranches.length - 1
           ? 0
@@ -310,7 +308,7 @@ function ChooseBranchStep({
       )}
 
       <Box marginTop={1}>
-        <Text dimColor>[Enter] Select [Esc] Back</Text>
+        <Text dimColor>[Enter] Select [↑↓] Move [Esc] Back</Text>
       </Box>
     </Box>
   );
@@ -338,12 +336,13 @@ function InputStep({
     state;
 
   useInput((input, key) => {
+    // Escで前のステップに戻る
     if (key.escape) {
-      onCancel();
+      onBack();
       return;
     }
-    // Tab でフォーカス移動（簡略化: space で toggle）
-    if (input === " ") {
+    // Tabでチェックボックスをトグル
+    if (key.tab) {
       onToggleOpenEditor();
     }
   });
@@ -387,12 +386,12 @@ function InputStep({
             [{openEditor ? "x" : " "}]
           </Text>
           <Text> Open editor after creation </Text>
-          <Text dimColor>[Space]</Text>
+          <Text dimColor>[Tab]</Text>
         </Text>
       </Box>
 
       <Box marginTop={1}>
-        <Text dimColor>[Enter] Create [Esc] Cancel</Text>
+        <Text dimColor>[Enter] Create [Esc] Back</Text>
       </Box>
     </Box>
   );

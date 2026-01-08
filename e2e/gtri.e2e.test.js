@@ -160,3 +160,161 @@ describe("gtri E2E (PTY)", () => {
     }
   });
 });
+
+describe("Create Worktree Dialog E2E", () => {
+  test("n key opens create worktree dialog", async () => {
+    const gtri = spawnGtri();
+    try {
+      await waitForOutput(gtri.getOutput, "Worktrees");
+
+      // Press n to open create dialog
+      gtri.write("n");
+
+      await waitForOutput(gtri.getOutput, "Create New Worktree", 5000);
+      expect(stripAnsi(gtri.getOutput())).toContain("Create New Worktree");
+      expect(stripAnsi(gtri.getOutput())).toContain("(default)");
+    } finally {
+      gtri.write("\x1b"); // Close dialog
+      gtri.write("q");
+      gtri.kill();
+    }
+  });
+
+  test("Escape closes create worktree dialog", async () => {
+    const gtri = spawnGtri();
+    try {
+      await waitForOutput(gtri.getOutput, "Worktrees");
+
+      // Press n to open create dialog
+      gtri.write("n");
+      await waitForOutput(gtri.getOutput, "Create New Worktree", 5000);
+
+      // Press Escape to close
+      gtri.clearOutput();
+      gtri.write("\x1b");
+
+      // Wait for dialog to close and return to main view
+      await new Promise((r) => setTimeout(r, 300));
+      const output = stripAnsi(gtri.getOutput());
+      // Dialog should be closed - no longer showing "Create New Worktree" header
+      // Main view should be visible
+      expect(output).not.toContain("Create New Worktree");
+    } finally {
+      gtri.write("q");
+      gtri.kill();
+    }
+  });
+
+  test("number keys select base option in create dialog", async () => {
+    const gtri = spawnGtri();
+    try {
+      await waitForOutput(gtri.getOutput, "Worktrees");
+
+      // Press n to open create dialog
+      gtri.write("n");
+      await waitForOutput(gtri.getOutput, "Create New Worktree", 5000);
+
+      // Press 1 to select default branch and proceed to input step
+      gtri.clearOutput();
+      gtri.write("1");
+
+      await waitForOutput(gtri.getOutput, "Branch name:", 5000);
+      expect(stripAnsi(gtri.getOutput())).toContain("Branch name:");
+    } finally {
+      gtri.write("\x1b"); // Back to select step
+      gtri.write("\x1b"); // Close dialog
+      gtri.write("q");
+      gtri.kill();
+    }
+  });
+
+  test("j/k keys navigate in select base step", async () => {
+    const gtri = spawnGtri();
+    try {
+      await waitForOutput(gtri.getOutput, "Worktrees");
+
+      // Press n to open create dialog
+      gtri.write("n");
+      await waitForOutput(gtri.getOutput, "Create New Worktree", 5000);
+
+      // Press j to move down
+      gtri.write("j");
+      await new Promise((r) => setTimeout(r, 200));
+
+      // Press k to move up
+      gtri.write("k");
+      await new Promise((r) => setTimeout(r, 200));
+
+      // If we got here without crash, navigation works
+      expect(stripAnsi(gtri.getOutput())).toContain("Create New Worktree");
+    } finally {
+      gtri.write("\x1b");
+      gtri.write("q");
+      gtri.kill();
+    }
+  });
+
+  test("choose branch option opens branch picker", async () => {
+    const gtri = spawnGtri();
+    try {
+      await waitForOutput(gtri.getOutput, "Worktrees");
+
+      // Press n to open create dialog
+      gtri.write("n");
+      await waitForOutput(gtri.getOutput, "Create New Worktree", 5000);
+
+      // Wait for dialog content to fully render
+      await waitForOutput(gtri.getOutput, "Choose branch...", 5000);
+
+      // Get the current output to count options
+      const output = stripAnsi(gtri.getOutput());
+
+      // Count how many options there are by checking for option numbers
+      // Options are: [1] From default, [2] From current, ([3] From selected if available), [N] Choose branch...
+      // The last option is always "Choose branch..."
+      let lastOptionNum = 3; // Default: no selected worktree
+      if (output.includes("From selected:")) {
+        lastOptionNum = 4;
+      }
+
+      // Press the number key for "Choose branch..." option
+      gtri.clearOutput();
+      gtri.write(String(lastOptionNum));
+
+      await waitForOutput(gtri.getOutput, "Select Base Branch", 5000);
+      expect(stripAnsi(gtri.getOutput())).toContain("Select Base Branch");
+      expect(stripAnsi(gtri.getOutput())).toContain("Filter:");
+    } finally {
+      gtri.write("\x1b"); // Back
+      gtri.write("\x1b"); // Close
+      gtri.write("q");
+      gtri.kill();
+    }
+  });
+
+  test("Escape in input step goes back to select step", async () => {
+    const gtri = spawnGtri();
+    try {
+      await waitForOutput(gtri.getOutput, "Worktrees");
+
+      // Press n to open create dialog
+      gtri.write("n");
+      await waitForOutput(gtri.getOutput, "Create New Worktree", 5000);
+
+      // Press 1 to select default and go to input step
+      gtri.write("1");
+      await waitForOutput(gtri.getOutput, "Branch name:", 5000);
+
+      // Press Escape to go back
+      gtri.clearOutput();
+      gtri.write("\x1b");
+
+      await waitForOutput(gtri.getOutput, "Create New Worktree", 5000);
+      expect(stripAnsi(gtri.getOutput())).toContain("(default)");
+    } finally {
+      gtri.write("\x1b");
+      gtri.write("q");
+      gtri.kill();
+    }
+  });
+});

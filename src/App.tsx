@@ -256,7 +256,13 @@ export function App() {
     if (executing) return;
 
     if (activeTab === "worktrees") {
-      // Worktree tab actions
+      // Create worktree can work without a selected worktree
+      if (input === "n") {
+        createWorktreeHook.openDialog();
+        return;
+      }
+
+      // Other worktree tab actions require a selected worktree
       const selected = worktrees[worktreeNav.selectedIndex];
       if (!selected) return;
 
@@ -280,10 +286,6 @@ export function App() {
       }
       if (input === "p") {
         executePR(selected);
-        return;
-      }
-      if (input === "n") {
-        createWorktreeHook.openDialog();
         return;
       }
     } else {
@@ -384,7 +386,6 @@ export function App() {
         <CreateWorktreeDialog
           state={createWorktreeHook.state.dialog}
           onBranchNameChange={createWorktreeHook.setBranchName}
-          onBaseBranchChange={createWorktreeHook.setBaseBranch}
           onToggleOpenEditor={createWorktreeHook.toggleOpenEditor}
           onSubmit={createWorktreeHook.submit}
           onCancel={createWorktreeHook.closeDialog}
