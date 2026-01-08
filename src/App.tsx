@@ -142,17 +142,8 @@ export function App() {
     if (loading) return;
 
     // Create worktree dialog mode
+    // キー入力はダイアログコンポーネント内で処理されるため、ここでは何もしない
     if (createWorktreeHook.isDialogOpen) {
-      if (isCancel(key)) {
-        createWorktreeHook.closeDialog();
-        return;
-      }
-      if (key.tab) {
-        createWorktreeHook.nextField();
-        return;
-      }
-      // Enter is handled by TextInput onSubmit or submit button
-      // Other keys are handled by the dialog component itself
       return;
     }
 
@@ -265,7 +256,13 @@ export function App() {
     if (executing) return;
 
     if (activeTab === "worktrees") {
-      // Worktree tab actions
+      // Create worktree can work without a selected worktree
+      if (input === "n") {
+        createWorktreeHook.openDialog();
+        return;
+      }
+
+      // Other worktree tab actions require a selected worktree
       const selected = worktrees[worktreeNav.selectedIndex];
       if (!selected) return;
 
@@ -289,10 +286,6 @@ export function App() {
       }
       if (input === "p") {
         executePR(selected);
-        return;
-      }
-      if (input === "n") {
-        createWorktreeHook.openDialog();
         return;
       }
     } else {
@@ -393,11 +386,14 @@ export function App() {
         <CreateWorktreeDialog
           state={createWorktreeHook.state.dialog}
           onBranchNameChange={createWorktreeHook.setBranchName}
-          onBaseBranchChange={createWorktreeHook.setBaseBranch}
           onToggleOpenEditor={createWorktreeHook.toggleOpenEditor}
-          onNextField={createWorktreeHook.nextField}
           onSubmit={createWorktreeHook.submit}
           onCancel={createWorktreeHook.closeDialog}
+          onSelectBaseOption={createWorktreeHook.selectBaseOption}
+          onBranchFilterChange={createWorktreeHook.setBranchFilter}
+          onBranchIndexChange={createWorktreeHook.setBranchIndex}
+          onSelectBranch={createWorktreeHook.selectBranch}
+          onBack={createWorktreeHook.goBack}
         />
       )}
 

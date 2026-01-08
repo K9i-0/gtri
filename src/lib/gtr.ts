@@ -353,7 +353,8 @@ export function buildGtrNewCommand(
       args.push(branchName, "--yes");
       break;
     case "fromSelected":
-      // gtr new <branch> --from <selected_worktree_branch> --yes
+    case "specific":
+      // gtr new <branch> --from <ref> --yes
       args.push(branchName, "--from", baseBranch.ref, "--yes");
       break;
     case "fromCurrent":
@@ -363,6 +364,23 @@ export function buildGtrNewCommand(
   }
 
   return args;
+}
+
+// ローカルブランチ一覧を取得
+export async function getLocalBranches(): Promise<string[]> {
+  const { stdout, exitCode } = await runGitCommand([
+    "branch",
+    "--format=%(refname:short)",
+  ]);
+
+  if (exitCode !== 0 || !stdout) {
+    return [];
+  }
+
+  return stdout
+    .split("\n")
+    .map((b) => b.trim())
+    .filter((b) => b.length > 0);
 }
 
 // 新規worktreeを作成（バックグラウンド実行用）

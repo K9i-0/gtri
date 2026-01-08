@@ -54,22 +54,35 @@ export type TabType = "worktrees" | "prs";
 export type BaseBranchMode =
   | { type: "default" } // デフォルトブランチから
   | { type: "fromSelected"; ref: string } // 選択中のworktreeのブランチから
-  | { type: "fromCurrent" }; // main repoの現在のブランチから (--from-current)
+  | { type: "fromCurrent" } // main repoの現在のブランチから (--from-current)
+  | { type: "specific"; ref: string }; // 任意のブランチから（Choose branch...で選択）
+
+// ダイアログのステップ
+export type CreateWorktreeStep =
+  | "selectBase" // Step 1: ベースブランチの選択方法を選ぶ
+  | "chooseBranch" // Step 1.5: ブランチ一覧から選ぶ（Choose branch...選択時）
+  | "input"; // Step 2: ブランチ名入力
 
 // ダイアログの状態
 export type CreateWorktreeDialogState =
   | { mode: "closed" }
   | {
-      mode: "input";
+      mode: "open";
+      step: CreateWorktreeStep;
       branchName: string;
       baseBranch: BaseBranchMode;
       openEditor: boolean;
-      activeField: "branchName" | "baseBranch" | "openEditor";
       validationError?: string;
       // ベースブランチ選択用のコンテキスト情報
       selectedWorktreeBranch?: string; // 選択中のworktreeのブランチ
       currentBranch?: string; // main repoの現在のブランチ
       defaultBranch?: string; // デフォルトブランチ
+      // selectBase ステップ用
+      selectedBaseIndex: number;
+      // chooseBranch ステップ用
+      branches: string[];
+      branchFilter: string;
+      selectedBranchIndex: number;
     };
 
 // バックグラウンドで作成中のworktree
