@@ -12,7 +12,7 @@ import {
   getDefaultBranch,
   getGtriCreateSettings,
   saveGtriCreateSettings,
-  type GtriCreateSettings,
+  getLocalBranches,
 } from "../lib/gtr.ts";
 
 interface UseCreateWorktreeOptions {
@@ -28,13 +28,15 @@ interface UseCreateWorktreeReturn {
   setBranchName: (name: string) => void;
   setBaseBranch: (mode: BaseBranchMode) => void;
   toggleOpenEditor: () => void;
-  setActiveField: (
-    field: "branchName" | "baseBranch" | "openEditor"
-  ) => void;
-  nextField: () => void;
   submit: () => Promise<void>;
   isDialogOpen: boolean;
   hasPending: boolean;
+  // 新しいコールバック
+  selectBaseOption: (index: number) => void;
+  setBranchFilter: (filter: string) => void;
+  setBranchIndex: (index: number) => void;
+  selectBranch: (branch: string) => void;
+  goBack: () => void;
 }
 
 export function useCreateWorktree({
@@ -47,56 +49,35 @@ export function useCreateWorktree({
     pending: [],
   });
 
-  // 保存された設定からBaseBranchModeを復元
-  const restoreBaseBranchMode = useCallback(
-    (
-      savedMode: GtriCreateSettings["baseBranchMode"],
-      selectedBranch?: string
-    ): BaseBranchMode => {
-      switch (savedMode) {
-        case "fromSelected":
-          // 選択中のworktreeがある場合のみ fromSelected を使用
-          if (selectedBranch) {
-            return { type: "fromSelected", ref: selectedBranch };
-          }
-          return { type: "default" };
-        case "fromCurrent":
-          return { type: "fromCurrent" };
-        default:
-          return { type: "default" };
-      }
-    },
-    []
-  );
-
   // ダイアログを開く
   const openDialog = useCallback(async () => {
     // コンテキスト情報と設定を取得
-    const [currentBranch, defaultBranch, savedSettings] = await Promise.all([
-      getCurrentBranch(),
-      getDefaultBranch(),
-      getGtriCreateSettings(),
-    ]);
-
-    const baseBranch = restoreBaseBranchMode(
-      savedSettings.baseBranchMode,
-      selectedWorktreeBranch
-    );
+    const [currentBranch, defaultBranch, savedSettings, branches] =
+      await Promise.all([
+        getCurrentBranch(),
+        getDefaultBranch(),
+        getGtriCreateSettings(),
+        getLocalBranches(),
+      ]);
 
     setState((s) => ({
       ...s,
       dialog: {
-        mode: "input",
+        mode: "open",
+        step: "selectBase",
         branchName: "",
-        baseBranch,
+        baseBranch: { type: "default" },
         openEditor: savedSettings.openEditor,
-        activeField: "branchName",
         selectedWorktreeBranch,
         currentBranch,
         defaultBranch,
+        selectedBaseIndex: 0,
+        branches,
+        branchFilter: "",
+        selectedBranchIndex: 0,
       },
     }));
-  }, [selectedWorktreeBranch, restoreBaseBranchMode]);
+  }, [selectedWorktreeBranch]);
 
   // ダイアログを閉じる
   const closeDialog = useCallback(() => {
@@ -106,10 +87,164 @@ export function useCreateWorktree({
     }));
   }, []);
 
+  // Step 1: ベースブランチ選択オプションを選ぶ
+  const selectBaseOption = useCallback(
+    (index: number) => {
+      setState((s) => {
+        if (s.dialog.mode !== "open") return s;
+
+        const { selectedWorktreeBranch } = s.dialog;
+        const hasSelectedBranch = !!selectedWorktreeBranch;
+
+        // オプション数を計算（selectedWorktreeBranchがある場合は4つ、なければ3つ）
+        const optionCount = hasSelectedBranch ? 4 : 3;
+
+        // 上下キーでの移動（単にindexを更新）
+        // Enter時は確定処理
+        if (index === s.dialog.selectedBaseIndex) {
+          // 同じインデックス = Enterで確定
+          // オプション順: 0=default, 1=fromCurrent, 2=fromSelected(optional), last=chooseBranch
+          if (index === 0) {
+            // From default
+            return {
+              ...s,
+              dialog: {
+                ...s.dialog,
+                step: "input" as const,
+                baseBranch: { type: "default" as const },
+              },
+            };
+          }
+          if (index === 1) {
+            // From current
+            return {
+              ...s,
+              dialog: {
+                ...s.dialog,
+                step: "input" as const,
+                baseBranch: { type: "fromCurrent" as const },
+              },
+            };
+          }
+          if (hasSelectedBranch && index === 2) {
+            // From selected
+            return {
+              ...s,
+              dialog: {
+                ...s.dialog,
+                step: "input" as const,
+                baseBranch: { type: "fromSelected" as const, ref: selectedWorktreeBranch },
+              },
+            };
+          }
+          // Choose branch... (last option)
+          return {
+            ...s,
+            dialog: {
+              ...s.dialog,
+              step: "chooseBranch" as const,
+              selectedBranchIndex: 0,
+              branchFilter: "",
+            },
+          };
+        }
+
+        // インデックスを更新（上下キー操作）
+        return {
+          ...s,
+          dialog: {
+            ...s.dialog,
+            selectedBaseIndex: index,
+          },
+        };
+      });
+    },
+    []
+  );
+
+  // Step 1.5: ブランチフィルターを更新
+  const setBranchFilter = useCallback((filter: string) => {
+    setState((s) => {
+      if (s.dialog.mode !== "open" || s.dialog.step !== "chooseBranch") return s;
+
+      // フィルター変更時は選択インデックスをリセット
+      return {
+        ...s,
+        dialog: {
+          ...s.dialog,
+          branchFilter: filter,
+          selectedBranchIndex: 0,
+        },
+      };
+    });
+  }, []);
+
+  // Step 1.5: ブランチインデックスを更新（j/k移動用）
+  const setBranchIndex = useCallback((index: number) => {
+    setState((s) => {
+      if (s.dialog.mode !== "open" || s.dialog.step !== "chooseBranch") return s;
+
+      return {
+        ...s,
+        dialog: {
+          ...s.dialog,
+          selectedBranchIndex: index,
+        },
+      };
+    });
+  }, []);
+
+  // Step 1.5: ブランチを選択
+  const selectBranch = useCallback((branch: string) => {
+    setState((s) => {
+      if (s.dialog.mode !== "open") return s;
+
+      return {
+        ...s,
+        dialog: {
+          ...s.dialog,
+          step: "input" as const,
+          baseBranch: { type: "specific" as const, ref: branch },
+        },
+      };
+    });
+  }, []);
+
+  // 前のステップに戻る
+  const goBack = useCallback(() => {
+    setState((s) => {
+      if (s.dialog.mode !== "open") return s;
+
+      if (s.dialog.step === "chooseBranch") {
+        return {
+          ...s,
+          dialog: {
+            ...s.dialog,
+            step: "selectBase" as const,
+            branchFilter: "",
+            selectedBranchIndex: 0,
+          },
+        };
+      }
+
+      if (s.dialog.step === "input") {
+        return {
+          ...s,
+          dialog: {
+            ...s.dialog,
+            step: "selectBase" as const,
+          },
+        };
+      }
+
+      return s;
+    });
+  }, []);
+
   // ブランチ名を設定（リアルタイムバリデーション付き）
   const setBranchName = useCallback((name: string) => {
     setState((s) => {
-      if (s.dialog.mode !== "input") return s;
+      if (s.dialog.mode !== "open") return s;
       const validation = validateBranchName(name);
       return {
         ...s,
@@ -126,7 +261,7 @@ export function useCreateWorktree({
   // ベースブランチを設定
   const setBaseBranch = useCallback((mode: BaseBranchMode) => {
     setState((s) => {
-      if (s.dialog.mode !== "input") return s;
+      if (s.dialog.mode !== "open") return s;
       return { ...s, dialog: { ...s.dialog, baseBranch: mode } };
     });
   }, []);
@@ -134,41 +269,15 @@ export function useCreateWorktree({
   // エディタを開くオプションをトグル
   const toggleOpenEditor = useCallback(() => {
     setState((s) => {
-      if (s.dialog.mode !== "input") return s;
+      if (s.dialog.mode !== "open") return s;
       return { ...s, dialog: { ...s.dialog, openEditor: !s.dialog.openEditor } };
-    });
-  }, []);
-
-  // アクティブフィールドを設定
-  const setActiveField = useCallback(
-    (field: "branchName" | "baseBranch" | "openEditor") => {
-      setState((s) => {
-        if (s.dialog.mode !== "input") return s;
-        return { ...s, dialog: { ...s.dialog, activeField: field } };
-      });
-    },
-    []
-  );
-
-  // 次のフィールドに移動
-  const nextField = useCallback(() => {
-    setState((s) => {
-      if (s.dialog.mode !== "input") return s;
-      const order = ["branchName", "baseBranch", "openEditor"] as const;
-      const currentIndex = order.indexOf(s.dialog.activeField);
-      const nextIndex = (currentIndex + 1) % order.length;
-      const nextActiveField = order[nextIndex] ?? "branchName";
-      return {
-        ...s,
-        dialog: { ...s.dialog, activeField: nextActiveField },
-      };
     });
   }, []);
 
   // 作成を開始（バックグラウンド）
   const submit = useCallback(async () => {
     const currentDialog = state.dialog;
-    if (currentDialog.mode !== "input") return;
+    if (currentDialog.mode !== "open" || currentDialog.step !== "input") return;
 
     const { branchName, baseBranch, openEditor: shouldOpenEditor } =
       currentDialog;
@@ -179,7 +288,7 @@ export function useCreateWorktree({
       setState((s) => ({
         ...s,
         dialog:
-          s.dialog.mode === "input"
+          s.dialog.mode === "open"
             ? { ...s.dialog, validationError: validation.error }
             : s.dialog,
       }));
@@ -214,11 +323,14 @@ export function useCreateWorktree({
           pending: s.pending.filter((p) => p.id !== pendingId),
         }));
         onSuccess();
-        onStatusMessage(`✓ Created worktree: ${branchName}`, "success");
+        onStatusMessage(`Created worktree: ${branchName}`, "success");
 
         // 設定を保存（次回のデフォルトとして使用）
+        // specific の場合は default として保存
+        const modeToSave =
+          baseBranch.type === "specific" ? "default" : baseBranch.type;
         await saveGtriCreateSettings({
-          baseBranchMode: baseBranch.type,
+          baseBranchMode: modeToSave,
           openEditor: shouldOpenEditor,
         });
 
@@ -232,7 +344,7 @@ export function useCreateWorktree({
           ...s,
           pending: s.pending.filter((p) => p.id !== pendingId),
         }));
-        onStatusMessage(`✗ Failed to create: ${result.error}`, "error");
+        onStatusMessage(`Failed to create: ${result.error}`, "error");
       }
     } catch (error) {
       setState((s) => ({
@@ -240,7 +352,7 @@ export function useCreateWorktree({
         pending: s.pending.filter((p) => p.id !== pendingId),
       }));
       onStatusMessage(
-        `✗ Failed to create: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to create: ${error instanceof Error ? error.message : String(error)}`,
         "error"
       );
     }
@@ -253,10 +365,13 @@ export function useCreateWorktree({
     setBranchName,
     setBaseBranch,
     toggleOpenEditor,
-    setActiveField,
-    nextField,
     submit,
-    isDialogOpen: state.dialog.mode === "input",
+    isDialogOpen: state.dialog.mode === "open",
     hasPending: state.pending.length > 0,
+    selectBaseOption,
+    setBranchFilter,
+    setBranchIndex,
+    selectBranch,
+    goBack,
   };
 }

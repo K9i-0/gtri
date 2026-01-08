@@ -4,90 +4,142 @@ import type {
   CreateWorktreeDialogState,
   BaseBranchMode,
 } from "../types/worktree.ts";
+import { isMoveUp, isMoveDown } from "../lib/keybindings.ts";
 
 interface CreateWorktreeDialogProps {
   state: CreateWorktreeDialogState;
   onBranchNameChange: (name: string) => void;
   onBaseBranchChange: (mode: BaseBranchMode) => void;
   onToggleOpenEditor: () => void;
-  onNextField: () => void;
   onSubmit: () => void;
   onCancel: () => void;
+  onSelectBaseOption: (index: number) => void;
+  onBranchFilterChange: (filter: string) => void;
+  onBranchIndexChange: (index: number) => void;
+  onSelectBranch: (branch: string) => void;
+  onBack: () => void;
 }
 
 export function CreateWorktreeDialog({
   state,
   onBranchNameChange,
-  onBaseBranchChange,
   onToggleOpenEditor,
-  onNextField,
   onSubmit,
   onCancel,
+  onSelectBaseOption,
+  onBranchFilterChange,
+  onBranchIndexChange,
+  onSelectBranch,
+  onBack,
 }: CreateWorktreeDialogProps) {
   if (state.mode === "closed") return null;
 
-  const {
-    branchName,
-    baseBranch,
-    openEditor,
-    activeField,
-    validationError,
-    selectedWorktreeBranch,
-    currentBranch,
-    defaultBranch,
-  } = state;
+  const { step } = state;
 
-  // ベースブランチ選択時のキー入力処理
-  useInput(
-    (input, key) => {
-      if (activeField !== "baseBranch") return;
+  if (step === "selectBase") {
+    return (
+      <SelectBaseStep
+        state={state}
+        onSelect={onSelectBaseOption}
+        onCancel={onCancel}
+      />
+    );
+  }
 
-      if (key.upArrow || key.downArrow) {
-        // 上下キーでベースブランチを変更
-        const options: BaseBranchMode[] = [
-          { type: "default" },
-          ...(selectedWorktreeBranch
-            ? [{ type: "fromSelected" as const, ref: selectedWorktreeBranch }]
-            : []),
-          { type: "fromCurrent" },
-        ];
+  if (step === "chooseBranch") {
+    return (
+      <ChooseBranchStep
+        state={state}
+        onFilterChange={onBranchFilterChange}
+        onIndexChange={onBranchIndexChange}
+        onSelect={onSelectBranch}
+        onBack={onBack}
+        onCancel={onCancel}
+      />
+    );
+  }
 
-        const currentIndex = options.findIndex((opt) => {
-          if (opt.type === "default" && baseBranch.type === "default")
-            return true;
-          if (opt.type === "fromSelected" && baseBranch.type === "fromSelected")
-            return true;
-          if (opt.type === "fromCurrent" && baseBranch.type === "fromCurrent")
-            return true;
-          return false;
-        });
-
-        let newIndex: number;
-        if (key.upArrow) {
-          newIndex = currentIndex <= 0 ? options.length - 1 : currentIndex - 1;
-        } else {
-          newIndex = currentIndex >= options.length - 1 ? 0 : currentIndex + 1;
-        }
-
-        const newOption = options[newIndex];
-        if (newOption) {
-          onBaseBranchChange(newOption);
-        }
-      }
-    },
-    { isActive: activeField === "baseBranch" }
+  return (
+    <InputStep
+      state={state}
+      onBranchNameChange={onBranchNameChange}
+      onToggleOpenEditor={onToggleOpenEditor}
+      onSubmit={onSubmit}
+      onBack={onBack}
+      onCancel={onCancel}
+    />
   );
+}
 
-  // openEditor フィールドでのキー入力処理
-  useInput(
-    (input, key) => {
-      if (activeField !== "openEditor") return;
-      if (input === " " || key.return) {
-        onToggleOpenEditor();
-      }
+// Step 1: ベースブランチ選択方法を選ぶ
+interface SelectBaseStepProps {
+  state: Extract<CreateWorktreeDialogState, { mode: "open" }>;
+  onSelect: (index: number) => void;
+  onCancel: () => void;
+}
+
+function SelectBaseStep({ state, onSelect, onCancel }: SelectBaseStepProps) {
+  const { defaultBranch, currentBranch, selectedBaseIndex, selectedWorktreeBranch } = state;
+
+  // 選択肢を構築（selectedWorktreeBranchがある場合は追加）
+  const options: { key: string; label: string }[] = [
+    {
+      key: "1",
+      label: `From ${defaultBranch || "main"} (default)`,
     },
-    { isActive: activeField === "openEditor" }
-  );
+    {
+      key: "2",
+      label: `From ${currentBranch || "unknown"} (main repo HEAD)`,
+    },
+  ];
+
+  // 選択中のworktreeブランチがある場合は追加
+  if (selectedWorktreeBranch) {
+    options.push({
+      key: "3",
+      label: `From selected: ${selectedWorktreeBranch}`,
+    });
+  }
+
+  // Choose branch... は常に最後
+  options.push({
+    key: String(options.length + 1),
+    label: "Choose branch...",
+  });
+
+  useInput((input, key) => {
+    // 数字キーでクイック選択
+    const numKey = parseInt(input, 10);
+    if (numKey >= 1 && numKey <= options.length) {
+      onSelect(numKey - 1);
+      return;
+    }
+
+    // j/k/上下キーで選択
+    if (isMoveUp(input, key)) {
+      const newIndex =
+        selectedBaseIndex <= 0 ? options.length - 1 : selectedBaseIndex - 1;
+      onSelect(newIndex);
+      return;
+    }
+    if (isMoveDown(input, key)) {
+      const newIndex =
+        selectedBaseIndex >= options.length - 1 ? 0 : selectedBaseIndex + 1;
+      onSelect(newIndex);
+      return;
+    }
+
+    // Enterで確定
+    if (key.return) {
+      onSelect(selectedBaseIndex);
+      return;
+    }
+
+    // Escでキャンセル
+    if (key.escape) {
+      onCancel();
+    }
+  });
 
   return (
     <Box
@@ -99,92 +151,250 @@ export function CreateWorktreeDialog({
       marginY={1}
     >
       <Text bold color="blue">
-        New Worktree
+        Create New Worktree
       </Text>
 
-      {/* Branch name input */}
-      <Box marginTop={1}>
-        <Text color={activeField === "branchName" ? "cyan" : undefined}>
-          Branch name:{" "}
-        </Text>
-        {activeField === "branchName" ? (
-          <TextInput
-            value={branchName}
-            onChange={onBranchNameChange}
-            onSubmit={onSubmit}
-          />
-        ) : (
-          <Text>{branchName || "(empty)"}</Text>
-        )}
-      </Box>
-
-      {/* Validation error */}
-      {validationError && (
-        <Box marginLeft={2}>
-          <Text color="yellow">⚠ {validationError}</Text>
-        </Box>
-      )}
-
-      {/* Base branch selector */}
       <Box marginTop={1} flexDirection="column">
-        <Text color={activeField === "baseBranch" ? "cyan" : undefined}>
-          Base:{" "}
-          {activeField === "baseBranch" ? (
-            <Text dimColor>[↑↓ to select]</Text>
-          ) : (
-            <Text>{formatBaseBranch(baseBranch, defaultBranch)}</Text>
-          )}
-        </Text>
-        {activeField === "baseBranch" && (
-          <Box flexDirection="column" marginLeft={2}>
-            <BaseBranchOption
-              label={`Default branch (${defaultBranch || "main"})`}
-              isSelected={baseBranch.type === "default"}
-            />
-            {selectedWorktreeBranch && (
-              <BaseBranchOption
-                label={`From selected: ${selectedWorktreeBranch}`}
-                isSelected={baseBranch.type === "fromSelected"}
-              />
+        {options.map((opt, i) => (
+          <Text key={opt.key}>
+            {i === selectedBaseIndex ? (
+              <Text color="cyan">{">"} </Text>
+            ) : (
+              <Text>{"  "}</Text>
             )}
-            <BaseBranchOption
-              label={`From current (main repo): ${currentBranch || "unknown"}`}
-              isSelected={baseBranch.type === "fromCurrent"}
-            />
-          </Box>
-        )}
+            <Text
+              color={i === selectedBaseIndex ? "cyan" : undefined}
+              bold={i === selectedBaseIndex}
+            >
+              [{opt.key}] {opt.label}
+            </Text>
+          </Text>
+        ))}
       </Box>
 
-      {/* Open editor checkbox */}
       <Box marginTop={1}>
-        <Text color={activeField === "openEditor" ? "cyan" : undefined}>
-          [{openEditor ? "x" : " "}] Open editor after creation
-          {activeField === "openEditor" && <Text dimColor> [Space to toggle]</Text>}
-        </Text>
-      </Box>
-
-      {/* Action hints */}
-      <Box marginTop={1}>
-        <Text dimColor>[Enter] Create [Tab] Next field [Esc] Cancel</Text>
+        <Text dimColor>[1-{options.length}] Select [j/k] Move [Enter] Confirm [Esc] Cancel</Text>
       </Box>
     </Box>
   );
 }
 
-interface BaseBranchOptionProps {
-  label: string;
-  isSelected: boolean;
+// Step 1.5: ブランチ一覧から選ぶ
+interface ChooseBranchStepProps {
+  state: Extract<CreateWorktreeDialogState, { mode: "open" }>;
+  onFilterChange: (filter: string) => void;
+  onIndexChange: (index: number) => void;
+  onSelect: (branch: string) => void;
+  onBack: () => void;
+  onCancel: () => void;
 }
 
-function BaseBranchOption({ label, isSelected }: BaseBranchOptionProps) {
+function ChooseBranchStep({
+  state,
+  onFilterChange,
+  onIndexChange,
+  onSelect,
+  onBack,
+  onCancel,
+}: ChooseBranchStepProps) {
+  const { branches, branchFilter, selectedBranchIndex } = state;
+
+  // フィルター適用
+  const filteredBranches = branches.filter((b) =>
+    b.toLowerCase().includes(branchFilter.toLowerCase())
+  );
+
+  // 表示するブランチ（最大10件）
+  const maxVisible = 10;
+  const startIndex = Math.max(
+    0,
+    Math.min(
+      selectedBranchIndex - Math.floor(maxVisible / 2),
+      filteredBranches.length - maxVisible
+    )
+  );
+  const visibleBranches = filteredBranches.slice(
+    startIndex,
+    startIndex + maxVisible
+  );
+
+  useInput((input, key) => {
+    // Escでキャンセル、フィルタが空の時はBack
+    if (key.escape) {
+      if (branchFilter === "") {
+        onBack();
+      } else {
+        onCancel();
+      }
+      return;
+    }
+
+    // j/k/上下キーで選択
+    if (isMoveUp(input, key)) {
+      const newIndex =
+        selectedBranchIndex <= 0
+          ? filteredBranches.length - 1
+          : selectedBranchIndex - 1;
+      onIndexChange(newIndex);
+      return;
+    }
+    if (isMoveDown(input, key)) {
+      const newIndex =
+        selectedBranchIndex >= filteredBranches.length - 1
+          ? 0
+          : selectedBranchIndex + 1;
+      onIndexChange(newIndex);
+      return;
+    }
+
+    // Enterで選択
+    if (key.return) {
+      const selected = filteredBranches[selectedBranchIndex];
+      if (selected) {
+        onSelect(selected);
+      }
+    }
+  });
+
   return (
-    <Text>
-      {isSelected ? (
-        <Text color="green">● {label}</Text>
-      ) : (
-        <Text dimColor>○ {label}</Text>
+    <Box
+      flexDirection="column"
+      borderStyle="round"
+      borderColor="blue"
+      paddingX={2}
+      paddingY={1}
+      marginY={1}
+    >
+      <Text bold color="blue">
+        Select Base Branch
+      </Text>
+
+      <Box marginTop={1}>
+        <Text color="cyan">Filter: </Text>
+        <TextInput
+          value={branchFilter}
+          onChange={onFilterChange}
+          placeholder="Type to filter..."
+        />
+      </Box>
+
+      <Box marginTop={1} flexDirection="column">
+        {visibleBranches.length === 0 ? (
+          <Text dimColor>No branches found</Text>
+        ) : (
+          visibleBranches.map((branch, i) => {
+            const actualIndex = startIndex + i;
+            const isSelected = actualIndex === selectedBranchIndex;
+            return (
+              <Text key={branch}>
+                {isSelected ? (
+                  <Text color="cyan">{">"} </Text>
+                ) : (
+                  <Text>{"  "}</Text>
+                )}
+                <Text color={isSelected ? "cyan" : undefined} bold={isSelected}>
+                  {branch}
+                </Text>
+              </Text>
+            );
+          })
+        )}
+      </Box>
+
+      {filteredBranches.length > maxVisible && (
+        <Box marginTop={1}>
+          <Text dimColor>
+            {selectedBranchIndex + 1} of {filteredBranches.length} branches
+          </Text>
+        </Box>
       )}
-    </Text>
+
+      <Box marginTop={1}>
+        <Text dimColor>[Enter] Select [Esc] Back</Text>
+      </Box>
+    </Box>
+  );
+}
+
+// Step 2: ブランチ名入力
+interface InputStepProps {
+  state: Extract<CreateWorktreeDialogState, { mode: "open" }>;
+  onBranchNameChange: (name: string) => void;
+  onToggleOpenEditor: () => void;
+  onSubmit: () => void;
+  onBack: () => void;
+  onCancel: () => void;
+}
+
+function InputStep({
+  state,
+  onBranchNameChange,
+  onToggleOpenEditor,
+  onSubmit,
+  onBack,
+  onCancel,
+}: InputStepProps) {
+  const { branchName, baseBranch, openEditor, validationError, defaultBranch } =
+    state;
+
+  useInput((input, key) => {
+    if (key.escape) {
+      onCancel();
+      return;
+    }
+    // Tab でフォーカス移動（簡略化: space で toggle）
+    if (input === " ") {
+      onToggleOpenEditor();
+    }
+  });
+
+  const baseBranchLabel = formatBaseBranch(baseBranch, defaultBranch);
+
+  return (
+    <Box
+      flexDirection="column"
+      borderStyle="round"
+      borderColor="blue"
+      paddingX={2}
+      paddingY={1}
+      marginY={1}
+    >
+      <Text bold color="blue">
+        New Worktree from {baseBranchLabel}
+      </Text>
+
+      <Box marginTop={1}>
+        <Text color="cyan">Branch name: </Text>
+        <TextInput
+          value={branchName}
+          onChange={onBranchNameChange}
+          onSubmit={onSubmit}
+        />
+      </Box>
+
+      {validationError && (
+        <Box marginLeft={2}>
+          <Text color="yellow">! {validationError}</Text>
+        </Box>
+      )}
+
+      <Box marginTop={1}>
+        <Text>
+          <Text
+            color={openEditor ? "green" : undefined}
+            dimColor={!openEditor}
+          >
+            [{openEditor ? "x" : " "}]
+          </Text>
+          <Text> Open editor after creation </Text>
+          <Text dimColor>[Space]</Text>
+        </Text>
+      </Box>
+
+      <Box marginTop={1}>
+        <Text dimColor>[Enter] Create [Esc] Cancel</Text>
+      </Box>
+    </Box>
   );
 }
 
@@ -194,10 +404,11 @@ function formatBaseBranch(
 ): string {
   switch (mode.type) {
     case "default":
-      return `(default branch: ${defaultBranch || "main"})`;
+      return defaultBranch || "main";
     case "fromSelected":
-      return `from ${mode.ref}`;
+    case "specific":
+      return mode.ref;
     case "fromCurrent":
-      return "(main repo current)";
+      return "current branch";
   }
 }
