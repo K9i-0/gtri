@@ -30,6 +30,24 @@ export interface GtrConfig {
 
 export type ActionType = "editor" | "ai" | "copy" | "delete" | "refresh";
 
+// アクション選択ダイアログ用
+export interface ActionItem {
+  key: string;
+  label: string;
+  action: () => void;
+  disabled?: boolean;
+  disabledReason?: string;
+}
+
+export type ActionSelectDialogState =
+  | { mode: "closed" }
+  | {
+      mode: "open";
+      selectedIndex: number;
+      actions: ActionItem[];
+      targetLabel: string;
+    };
+
 export type TabType = "worktrees" | "prs";
 
 // ベースブランチの種類

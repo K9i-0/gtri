@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import { useWorktrees } from "./hooks/useWorktrees.ts";
 import { useNavigation } from "./hooks/useNavigation.ts";
 import { useActions } from "./hooks/useActions.ts";
 import { usePRs } from "./hooks/usePRs.ts";
 import { useCreateWorktree } from "./hooks/useCreateWorktree.ts";
+import { useActionSelect } from "./hooks/useActionSelect.ts";
 import { Header } from "./components/Header.tsx";
 import { WorktreeList } from "./components/WorktreeList.tsx";
 import { PRList } from "./components/PRList.tsx";
@@ -12,7 +13,17 @@ import { TabBar } from "./components/TabBar.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
 import { ConfirmDialog } from "./components/ConfirmDialog.tsx";
 import { CreateWorktreeDialog } from "./components/CreateWorktreeDialog.tsx";
+import { ActionSelectDialog } from "./components/ActionSelectDialog.tsx";
 import { openPRInBrowser } from "./lib/gtr.ts";
+import {
+  isMoveUp,
+  isMoveDown,
+  isMoveToTop,
+  isMoveToBottom,
+  isQuit,
+  isConfirm,
+  isCancel,
+} from "./lib/keybindings.ts";
 import type { TabType } from "./types/worktree.ts";
 
 export function App() {
@@ -97,6 +108,33 @@ export function App() {
     selectedWorktreeBranch,
   });
 
+  // Action select dialog
+  const worktreeActionHandlers = useMemo(
+    () => ({
+      executeEditor,
+      executeAi,
+      executeCopy,
+      setConfirmDelete,
+      executePR,
+      openCreateDialog: createWorktreeHook.openDialog,
+    }),
+    [executeEditor, executeAi, executeCopy, setConfirmDelete, executePR, createWorktreeHook.openDialog]
+  );
+
+  const prActionHandlers = useMemo(
+    () => ({
+      createWorktree,
+      openPRInBrowser,
+      setStatusMessage,
+    }),
+    [createWorktree]
+  );
+
+  const actionSelect = useActionSelect({
+    worktreeHandlers: worktreeActionHandlers,
+    prHandlers: prActionHandlers,
+  });
+
   // Get current navigation based on active tab
   const currentNav = activeTab === "worktrees" ? worktreeNav : prNav;
 
@@ -105,7 +143,7 @@ export function App() {
 
     // Create worktree dialog mode
     if (createWorktreeHook.isDialogOpen) {
-      if (key.escape) {
+      if (isCancel(key)) {
         createWorktreeHook.closeDialog();
         return;
       }
@@ -115,6 +153,31 @@ export function App() {
       }
       // Enter is handled by TextInput onSubmit or submit button
       // Other keys are handled by the dialog component itself
+      return;
+    }
+
+    // Action select dialog mode
+    if (actionSelect.isOpen) {
+      if (isCancel(key)) {
+        actionSelect.close();
+        return;
+      }
+      if (isMoveUp(input, key)) {
+        actionSelect.moveUp();
+        return;
+      }
+      if (isMoveDown(input, key)) {
+        actionSelect.moveDown();
+        return;
+      }
+      if (isConfirm(key)) {
+        actionSelect.executeSelected();
+        return;
+      }
+      // Direct key execution
+      if (actionSelect.executeByKey(input)) {
+        return;
+      }
       return;
     }
 
@@ -148,25 +211,25 @@ export function App() {
     }
 
     // Quit
-    if (input === "q" || key.escape) {
+    if (isQuit(input, key)) {
       exit();
       return;
     }
 
     // Navigation (works for both tabs)
-    if (input === "j" || key.downArrow || (key.ctrl && input === "n")) {
+    if (isMoveDown(input, key)) {
       currentNav.moveDown();
       return;
     }
-    if (input === "k" || key.upArrow || (key.ctrl && input === "p")) {
+    if (isMoveUp(input, key)) {
       currentNav.moveUp();
       return;
     }
-    if (input === "g" || (key.ctrl && input === "a")) {
+    if (isMoveToTop(input, key)) {
       currentNav.moveToTop();
       return;
     }
-    if (input === "G" || (key.ctrl && input === "e")) {
+    if (isMoveToBottom(input, key)) {
       currentNav.moveToBottom();
       return;
     }
@@ -179,6 +242,22 @@ export function App() {
     if (input === "r") {
       refresh();
       prRefresh();
+      return;
+    }
+
+    // Enter to open action select dialog
+    if (isConfirm(key)) {
+      if (activeTab === "worktrees") {
+        const selected = worktrees[worktreeNav.selectedIndex];
+        if (selected) {
+          actionSelect.openForWorktree(selected);
+        }
+      } else {
+        const selectedPR = prs[prNav.selectedIndex];
+        if (selectedPR) {
+          actionSelect.openForPR(selectedPR);
+        }
+      }
       return;
     }
 
@@ -308,6 +387,8 @@ export function App() {
 
       {confirmDelete && <ConfirmDialog worktree={confirmDelete} />}
 
+      {actionSelect.isOpen && <ActionSelectDialog state={actionSelect.state} />}
+
       {createWorktreeHook.isDialogOpen && (
         <CreateWorktreeDialog
           state={createWorktreeHook.state.dialog}
@@ -324,6 +405,7 @@ export function App() {
         message={statusMessage || message}
         activeTab={activeTab}
         createDialogOpen={createWorktreeHook.isDialogOpen}
+        actionSelectOpen={actionSelect.isOpen}
       />
     </Box>
   );

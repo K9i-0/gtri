@@ -5,20 +5,25 @@ interface StatusBarProps {
   message?: string | null;
   activeTab?: TabType;
   createDialogOpen?: boolean;
+  actionSelectOpen?: boolean;
 }
 
 export function StatusBar({
   message,
   activeTab = "worktrees",
   createDialogOpen = false,
+  actionSelectOpen = false,
 }: StatusBarProps) {
   const worktreeHint =
-    "[e]ditor [a]i [c]opy [d]elete [n]ew [p]r [r]efresh [q]uit | j/k:move | Tab:switch";
-  const prHint = "[w]orktree [p]r [r]efresh [q]uit | j/k:move | Tab:switch";
+    "[e]ditor [a]i [c]opy [d]elete [n]ew [p]r [r]efresh [q]uit | j/k:move | Enter:actions | Tab:switch";
+  const prHint = "[w]orktree [p]r [r]efresh [q]uit | j/k:move | Enter:actions | Tab:switch";
   const createDialogHint = "[Enter] Create [Tab] Next field [Esc] Cancel";
+  const actionSelectHint = "[Enter] Execute [j/k] Move [Esc] Cancel";
 
   let hint: string;
-  if (createDialogOpen) {
+  if (actionSelectOpen) {
+    hint = actionSelectHint;
+  } else if (createDialogOpen) {
     hint = createDialogHint;
   } else {
     hint = activeTab === "worktrees" ? worktreeHint : prHint;
