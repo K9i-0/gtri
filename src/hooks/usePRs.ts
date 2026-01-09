@@ -16,7 +16,7 @@ interface UsePRsReturn {
 export function usePRs(
   worktrees: Worktree[],
   ghAvailable: boolean,
-  onWorktreeCreated: () => void
+  addWorktreeToList: (path: string, branch: string) => void
 ): UsePRsReturn {
   const [allPRs, setAllPRs] = useState<PRInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,7 +100,10 @@ export function usePRs(
                       : p
                   )
                 );
-                onWorktreeCreated(); // リスト更新
+                // 新しいworktreeをリストに追加（全体リフレッシュせず）
+                if (currentPath) {
+                  addWorktreeToList(currentPath, branchName);
+                }
                 break;
 
               case "copying":
@@ -146,7 +149,7 @@ export function usePRs(
         setCreatingBranch(null);
       }
     },
-    [onWorktreeCreated, removePRFromList]
+    [addWorktreeToList, removePRFromList]
   );
 
   return {

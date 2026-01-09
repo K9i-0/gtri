@@ -87,7 +87,7 @@ export async function listWorktrees(): Promise<Worktree[]> {
   return worktrees;
 }
 
-async function checkIsDirty(worktreePath: string): Promise<boolean> {
+export async function checkIsDirty(worktreePath: string): Promise<boolean> {
   const { stdout, exitCode } = await runGitCommand(
     ["status", "--porcelain"],
     worktreePath
@@ -95,7 +95,7 @@ async function checkIsDirty(worktreePath: string): Promise<boolean> {
   return exitCode === 0 && stdout.length > 0;
 }
 
-async function getShortHash(worktreePath: string): Promise<string | undefined> {
+export async function getShortHash(worktreePath: string): Promise<string | undefined> {
   const { stdout, exitCode } = await runGitCommand(
     ["rev-parse", "--short", "HEAD"],
     worktreePath
@@ -103,7 +103,7 @@ async function getShortHash(worktreePath: string): Promise<string | undefined> {
   return exitCode === 0 ? stdout : undefined;
 }
 
-async function getUpstreamBranch(branch: string): Promise<string | undefined> {
+export async function getUpstreamBranch(branch: string): Promise<string | undefined> {
   const { stdout, exitCode } = await runGitCommand([
     "config",
     "--get",
@@ -114,6 +114,26 @@ async function getUpstreamBranch(branch: string): Promise<string | undefined> {
   }
   // refs/heads/feature/hoge -> feature/hoge
   return stdout.replace(/^refs\/heads\//, "");
+}
+
+// Worktreeの詳細情報を取得
+export interface WorktreeDetails {
+  shortHash?: string;
+  upstreamBranch?: string;
+  isDirty: boolean;
+}
+
+export async function getWorktreeDetails(
+  path: string,
+  branch: string
+): Promise<WorktreeDetails> {
+  const [shortHash, upstreamBranch, isDirty] = await Promise.all([
+    getShortHash(path),
+    getUpstreamBranch(branch),
+    checkIsDirty(path),
+  ]);
+
+  return { shortHash, upstreamBranch, isDirty };
 }
 
 // Get config value with .gtrconfig fallback (mirrors gtr's cfg_default)

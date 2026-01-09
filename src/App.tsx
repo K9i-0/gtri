@@ -60,11 +60,22 @@ export function App() {
     deletingBranch,
     setDeletingBranch,
     removeWorktreeFromList,
+    addWorktreeToList,
     ghAvailable,
   } = useWorktrees();
 
   // Navigation for worktrees
   const worktreeNav = useNavigation(worktrees.length);
+
+  // Worktree追加時のコールバック（リストに追加 + 新しいworktreeを選択）
+  const handleWorktreeCreated = useCallback(
+    (path: string, branch: string) => {
+      addWorktreeToList(path, branch);
+      // 先頭に追加されるので、新しいworktreeを選択
+      worktreeNav.selectIndex(0);
+    },
+    [addWorktreeToList, worktreeNav]
+  );
 
   // PR list
   const {
@@ -74,7 +85,7 @@ export function App() {
     pendingWorktrees: prPendingWorktrees,
     refresh: prRefresh,
     createWorktree,
-  } = usePRs(worktrees, ghAvailable, refresh);
+  } = usePRs(worktrees, ghAvailable, handleWorktreeCreated);
 
   // Navigation for PRs
   const prNav = useNavigation(prs.length);
@@ -104,7 +115,7 @@ export function App() {
   );
 
   const createWorktreeHook = useCreateWorktree({
-    onSuccess: refresh,
+    onWorktreeCreated: handleWorktreeCreated,
     onStatusMessage: handleCreateStatusMessage,
     selectedWorktreeBranch,
   });

@@ -9,13 +9,13 @@ import type { Worktree, PRInfo } from "../types/worktree.ts";
 function TestComponent({
   worktrees = [],
   ghAvailable = false,
-  onWorktreeCreated = () => {},
+  addWorktreeToList = () => {},
 }: {
   worktrees?: Worktree[];
   ghAvailable?: boolean;
-  onWorktreeCreated?: () => void;
+  addWorktreeToList?: (path: string, branch: string) => void;
 }) {
-  const hook = usePRs(worktrees, ghAvailable, onWorktreeCreated);
+  const hook = usePRs(worktrees, ghAvailable, addWorktreeToList);
 
   return (
     <Text>

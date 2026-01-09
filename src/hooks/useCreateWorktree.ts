@@ -16,7 +16,7 @@ import {
 } from "../lib/gtr.ts";
 
 interface UseCreateWorktreeOptions {
-  onSuccess: () => void; // リストを更新
+  onWorktreeCreated: (path: string, branch: string) => void; // 新しいworktreeをリストに追加
   onStatusMessage: (message: string, type: "success" | "error") => void;
   selectedWorktreeBranch?: string; // 選択中のworktreeのブランチ
 }
@@ -40,7 +40,7 @@ interface UseCreateWorktreeReturn {
 }
 
 export function useCreateWorktree({
-  onSuccess,
+  onWorktreeCreated,
   onStatusMessage,
   selectedWorktreeBranch,
 }: UseCreateWorktreeOptions): UseCreateWorktreeReturn {
@@ -329,7 +329,7 @@ export function useCreateWorktree({
 
             case "worktree_created":
               // worktree作成完了（copy/hooks処理開始前）
-              // ready状態に移行し、リストを更新
+              // ready状態に移行し、リストに追加
               setState((s) => ({
                 ...s,
                 pending: s.pending.map((p) =>
@@ -338,7 +338,10 @@ export function useCreateWorktree({
                     : p
                 ),
               }));
-              onSuccess(); // リストを更新（新しいworktreeが表示される）
+              // 新しいworktreeをリストに追加（全体リフレッシュせず）
+              if (currentPath) {
+                onWorktreeCreated(currentPath, branchName);
+              }
               break;
 
             case "copying":
@@ -411,7 +414,7 @@ export function useCreateWorktree({
         "error"
       );
     }
-  }, [state.dialog, onSuccess, onStatusMessage]);
+  }, [state.dialog, onWorktreeCreated, onStatusMessage]);
 
   return {
     state,

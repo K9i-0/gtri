@@ -6,16 +6,16 @@ import { useCreateWorktree } from "./useCreateWorktree.ts";
 
 // テスト用コンポーネント
 function TestComponent({
-  onSuccess = () => {},
+  onWorktreeCreated = () => {},
   onStatusMessage = () => {},
   selectedWorktreeBranch,
 }: {
-  onSuccess?: () => void;
+  onWorktreeCreated?: () => void;
   onStatusMessage?: (msg: string, type: "success" | "error") => void;
   selectedWorktreeBranch?: string;
 }) {
   const hook = useCreateWorktree({
-    onSuccess,
+    onWorktreeCreated,
     onStatusMessage,
     selectedWorktreeBranch,
   });
@@ -68,7 +68,7 @@ describe("useCreateWorktree state transitions (via component)", () => {
 
     function CaptureHook() {
       hookRef = useCreateWorktree({
-        onSuccess: () => {},
+        onWorktreeCreated: () => {},
         onStatusMessage: () => {},
       });
       return <Text>captured</Text>;
@@ -95,7 +95,7 @@ describe("useCreateWorktree state transitions (via component)", () => {
 
     function CaptureHook() {
       hookRef = useCreateWorktree({
-        onSuccess: () => {},
+        onWorktreeCreated: () => {},
         onStatusMessage: () => {},
       });
       return (
@@ -121,7 +121,7 @@ describe("useCreateWorktree state transitions (via component)", () => {
 
     function CaptureHook() {
       hookRef = useCreateWorktree({
-        onSuccess: () => {},
+        onWorktreeCreated: () => {},
         onStatusMessage: () => {},
       });
       return <Text>mode:{hookRef.state.dialog.mode}</Text>;
@@ -140,7 +140,7 @@ describe("useCreateWorktree state transitions (via component)", () => {
 
     function CaptureHook() {
       hookRef = useCreateWorktree({
-        onSuccess: () => {},
+        onWorktreeCreated: () => {},
         onStatusMessage: () => {},
       });
       return <Text>mode:{hookRef.state.dialog.mode}</Text>;
@@ -159,7 +159,7 @@ describe("useCreateWorktree state transitions (via component)", () => {
 
     function CaptureHook() {
       hookRef = useCreateWorktree({
-        onSuccess: () => {},
+        onWorktreeCreated: () => {},
         onStatusMessage: () => {},
       });
       return <Text>mode:{hookRef.state.dialog.mode}</Text>;
@@ -177,7 +177,7 @@ describe("useCreateWorktree state transitions (via component)", () => {
 
     function CaptureHook() {
       hookRef = useCreateWorktree({
-        onSuccess: () => {},
+        onWorktreeCreated: () => {},
         onStatusMessage: () => {},
       });
       return <Text>mode:{hookRef.state.dialog.mode}</Text>;
@@ -191,12 +191,12 @@ describe("useCreateWorktree state transitions (via component)", () => {
   });
 
   test("submit does nothing when closed", async () => {
-    const onSuccess = mock(() => {});
+    const onWorktreeCreated = mock(() => {});
     let hookRef: ReturnType<typeof useCreateWorktree> | null = null;
 
     function CaptureHook() {
       hookRef = useCreateWorktree({
-        onSuccess,
+        onWorktreeCreated,
         onStatusMessage: () => {},
       });
       return <Text>mode:{hookRef.state.dialog.mode}</Text>;
@@ -207,7 +207,7 @@ describe("useCreateWorktree state transitions (via component)", () => {
     await hookRef!.submit();
     await new Promise((r) => setTimeout(r, 50));
     expect(lastFrame()).toContain("mode:closed");
-    expect(onSuccess).not.toHaveBeenCalled();
+    expect(onWorktreeCreated).not.toHaveBeenCalled();
   });
 });
 
@@ -217,7 +217,7 @@ describe("useCreateWorktree pending state", () => {
 
     function CaptureHook() {
       hookRef = useCreateWorktree({
-        onSuccess: () => {},
+        onWorktreeCreated: () => {},
         onStatusMessage: () => {},
       });
       return <Text>pending:{hookRef.state.pending.length}</Text>;
@@ -232,7 +232,7 @@ describe("useCreateWorktree pending state", () => {
 
     function CaptureHook() {
       hookRef = useCreateWorktree({
-        onSuccess: () => {},
+        onWorktreeCreated: () => {},
         onStatusMessage: () => {},
       });
       return <Text>captured</Text>;
