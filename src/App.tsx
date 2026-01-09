@@ -6,6 +6,7 @@ import { useActions } from "./hooks/useActions.ts";
 import { usePRs } from "./hooks/usePRs.ts";
 import { useCreateWorktree } from "./hooks/useCreateWorktree.ts";
 import { useActionSelect } from "./hooks/useActionSelect.ts";
+import { usePanelFocus } from "./hooks/usePanelFocus.ts";
 import { Header } from "./components/Header.tsx";
 import { WorktreeList } from "./components/WorktreeList.tsx";
 import { PRList } from "./components/PRList.tsx";
@@ -14,6 +15,9 @@ import { StatusBar } from "./components/StatusBar.tsx";
 import { ConfirmDialog } from "./components/ConfirmDialog.tsx";
 import { CreateWorktreeDialog } from "./components/CreateWorktreeDialog.tsx";
 import { ActionSelectDialog } from "./components/ActionSelectDialog.tsx";
+import { HelpDialog } from "./components/HelpDialog.tsx";
+import { PanelContainer } from "./components/PanelContainer.tsx";
+import { DetailPanel } from "./components/DetailPanel.tsx";
 import { openPRInBrowser } from "./lib/gtr.ts";
 import {
   isMoveUp,
@@ -23,6 +27,9 @@ import {
   isQuit,
   isConfirm,
   isCancel,
+  isMoveLeft,
+  isMoveRight,
+  isHelp,
 } from "./lib/keybindings.ts";
 import type { TabType } from "./types/worktree.ts";
 
@@ -30,7 +37,11 @@ export function App() {
   const { exit } = useApp();
   const [statusMessage, setStatusMessage] = useState("");
   const [activeTab, setActiveTab] = useState<TabType>("worktrees");
+  const [helpOpen, setHelpOpen] = useState(false);
   const statusTimeoutRef = useRef<Timer | null>(null);
+
+  // Panel focus management
+  const panelFocus = usePanelFocus();
 
   // Clear status message after 3 seconds
   useEffect(() => {
@@ -141,6 +152,21 @@ export function App() {
   useInput((input, key) => {
     if (loading) return;
 
+    // Help dialog mode
+    if (helpOpen) {
+      if (isHelp(input) || isCancel(key)) {
+        setHelpOpen(false);
+        return;
+      }
+      return;
+    }
+
+    // Toggle help
+    if (isHelp(input)) {
+      setHelpOpen(true);
+      return;
+    }
+
     // Create worktree dialog mode
     // キー入力はダイアログコンポーネント内で処理されるため、ここでは何もしない
     if (createWorktreeHook.isDialogOpen) {
@@ -192,6 +218,16 @@ export function App() {
       } else {
         setConfirmDelete(null);
       }
+      return;
+    }
+
+    // Panel navigation (h/l)
+    if (isMoveLeft(input)) {
+      panelFocus.focusList();
+      return;
+    }
+    if (isMoveRight(input)) {
+      panelFocus.focusDetail();
       return;
     }
 
@@ -336,6 +372,9 @@ export function App() {
     );
   }
 
+  // Get selected PR for detail panel
+  const selectedPR = prs[prNav.selectedIndex];
+
   return (
     <Box flexDirection="column">
       <Header config={config} mainBranch={mainBranch} />
@@ -346,19 +385,32 @@ export function App() {
         prCount={prs.length}
       />
 
-      {activeTab === "worktrees" ? (
+      {helpOpen ? (
+        <HelpDialog />
+      ) : activeTab === "worktrees" ? (
         worktrees.length === 0 ? (
           <Box flexDirection="column">
             <Text>No worktrees found.</Text>
             <Text dimColor>Use `gtr new &lt;branch&gt;` to create one.</Text>
           </Box>
         ) : (
-          <WorktreeList
-            worktrees={worktrees}
-            selectedIndex={worktreeNav.selectedIndex}
-            prLoading={prLoading}
-            deletingBranch={deletingBranch}
-            pendingWorktrees={createWorktreeHook.state.pending}
+          <PanelContainer
+            left={
+              <WorktreeList
+                worktrees={worktrees}
+                selectedIndex={worktreeNav.selectedIndex}
+                prLoading={prLoading}
+                deletingBranch={deletingBranch}
+                pendingWorktrees={createWorktreeHook.state.pending}
+              />
+            }
+            right={
+              <DetailPanel
+                type="worktree"
+                worktree={selectedWorktree}
+                isActive={panelFocus.isDetailActive}
+              />
+            }
           />
         )
       ) : prListLoading ? (
@@ -371,10 +423,21 @@ export function App() {
           <Text dimColor>All open PRs already have worktrees.</Text>
         </Box>
       ) : (
-        <PRList
-          prs={prs}
-          selectedIndex={prNav.selectedIndex}
-          creatingBranch={creatingBranch}
+        <PanelContainer
+          left={
+            <PRList
+              prs={prs}
+              selectedIndex={prNav.selectedIndex}
+              creatingBranch={creatingBranch}
+            />
+          }
+          right={
+            <DetailPanel
+              type="pr"
+              pr={selectedPR}
+              isActive={panelFocus.isDetailActive}
+            />
+          }
         />
       )}
 
@@ -402,6 +465,7 @@ export function App() {
         activeTab={activeTab}
         createDialogOpen={createWorktreeHook.isDialogOpen}
         actionSelectOpen={actionSelect.isOpen}
+        helpOpen={helpOpen}
       />
     </Box>
   );

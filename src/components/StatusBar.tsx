@@ -6,6 +6,7 @@ interface StatusBarProps {
   activeTab?: TabType;
   createDialogOpen?: boolean;
   actionSelectOpen?: boolean;
+  helpOpen?: boolean;
 }
 
 export function StatusBar({
@@ -13,15 +14,19 @@ export function StatusBar({
   activeTab = "worktrees",
   createDialogOpen = false,
   actionSelectOpen = false,
+  helpOpen = false,
 }: StatusBarProps) {
   const worktreeHint =
-    "[e]ditor [a]i [c]opy [d]elete [n]ew [p]r [r]efresh [q]uit | j/k:move | Enter:actions | Tab:switch";
-  const prHint = "[w]orktree [p]r [r]efresh [q]uit | j/k:move | Enter:actions | Tab:switch";
+    "[e]ditor [a]i [c]opy [d]elete [n]ew [p]r [r]efresh [q]uit | j/k:move h/l:panel ?:help Tab:switch";
+  const prHint = "[w]orktree [p]r [r]efresh [q]uit | j/k:move h/l:panel ?:help Tab:switch";
   const createDialogHint = "[Enter] Create [Tab] Next field [Esc] Cancel";
   const actionSelectHint = "[Enter] Execute [j/k] Move [Esc] Cancel";
+  const helpHint = "[?/Esc] Close help";
 
   let hint: string;
-  if (actionSelectOpen) {
+  if (helpOpen) {
+    hint = helpHint;
+  } else if (actionSelectOpen) {
     hint = actionSelectHint;
   } else if (createDialogOpen) {
     hint = createDialogHint;

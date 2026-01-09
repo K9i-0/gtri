@@ -29,3 +29,17 @@ export function isConfirm(key: Key): boolean {
 export function isCancel(key: Key): boolean {
   return key.escape;
 }
+
+// Panel navigation
+export function isMoveLeft(input: string): boolean {
+  return input === "h";
+}
+
+export function isMoveRight(input: string): boolean {
+  return input === "l";
+}
+
+// Help
+export function isHelp(input: string): boolean {
+  return input === "?";
+}
