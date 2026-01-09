@@ -14,6 +14,16 @@ interface WorktreeListProps {
 }
 
 export function WorktreeList({ worktrees, selectedIndex, prLoading, deletingBranch, pendingWorktrees = [] }: WorktreeListProps) {
+  // ready状態のpendingをマップに変換（branchName -> pending）
+  const processingMap = new Map(
+    pendingWorktrees
+      .filter((p) => p.status === "ready")
+      .map((p) => [p.branchName, p])
+  );
+
+  // creating状態のpendingのみ表示（ready状態はworktreeリストに表示）
+  const creatingPending = pendingWorktrees.filter((p) => p.status === "creating");
+
   // Calculate visible range (keep selected item near center)
   const startIndex = Math.max(
     0,
@@ -36,24 +46,29 @@ export function WorktreeList({ worktrees, selectedIndex, prLoading, deletingBran
         </Box>
       )}
       <Box flexDirection="column">
-        {visibleWorktrees.map((worktree, index) => (
-          <WorktreeItem
-            key={worktree.path}
-            worktree={worktree}
-            isSelected={startIndex + index === selectedIndex}
-            index={startIndex + index}
-            prLoading={prLoading && !worktree.prInfo}
-            isDeleting={deletingBranch === worktree.branch}
-          />
-        ))}
+        {visibleWorktrees.map((worktree, index) => {
+          const processingPending = processingMap.get(worktree.branch);
+          return (
+            <WorktreeItem
+              key={worktree.path}
+              worktree={worktree}
+              isSelected={startIndex + index === selectedIndex}
+              index={startIndex + index}
+              prLoading={prLoading && !worktree.prInfo}
+              isDeleting={deletingBranch === worktree.branch}
+              isProcessing={!!processingPending}
+              processingHint={processingPending?.processingHint}
+            />
+          );
+        })}
       </Box>
       {hasMoreBelow && (
         <Box marginLeft={2}>
           <Text dimColor>↓ more ({worktrees.length - endIndex})</Text>
         </Box>
       )}
-      {/* Pending worktrees */}
-      {pendingWorktrees.map((pending) => (
+      {/* Creating状態のPending worktreesのみ表示 */}
+      {creatingPending.map((pending) => (
         <PendingWorktreeItem key={pending.id} pending={pending} />
       ))}
     </Box>

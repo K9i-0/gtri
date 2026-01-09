@@ -5,7 +5,7 @@ import type {
   PendingWorktree,
 } from "../types/worktree.ts";
 import {
-  createWorktreeNew,
+  createWorktreeNewStreaming,
   validateBranchName,
   openEditorAtPath,
   getCurrentBranch,
@@ -16,7 +16,7 @@ import {
 } from "../lib/gtr.ts";
 
 interface UseCreateWorktreeOptions {
-  onSuccess: () => void; // リストを更新
+  onWorktreeCreated: (path: string, branch: string) => void; // 新しいworktreeをリストに追加
   onStatusMessage: (message: string, type: "success" | "error") => void;
   selectedWorktreeBranch?: string; // 選択中のworktreeのブランチ
 }
@@ -40,7 +40,7 @@ interface UseCreateWorktreeReturn {
 }
 
 export function useCreateWorktree({
-  onSuccess,
+  onWorktreeCreated,
   onStatusMessage,
   selectedWorktreeBranch,
 }: UseCreateWorktreeOptions): UseCreateWorktreeReturn {
@@ -312,17 +312,75 @@ export function useCreateWorktree({
       pending: [...s.pending, newPending],
     }));
 
-    // バックグラウンドで作成
+    // 進行中のパスを保持（progressコールバック用）
+    let currentPath: string | undefined;
+
+    // バックグラウンドで作成（ストリーミング版）
     try {
-      const result = await createWorktreeNew(branchName, baseBranch);
+      const result = await createWorktreeNewStreaming(
+        branchName,
+        baseBranch,
+        (progress) => {
+          switch (progress.type) {
+            case "path_detected":
+              // パスが検出された（まだworktree作成中）
+              currentPath = progress.path;
+              break;
+
+            case "worktree_created":
+              // worktree作成完了（copy/hooks処理開始前）
+              // ready状態に移行し、リストに追加
+              setState((s) => ({
+                ...s,
+                pending: s.pending.map((p) =>
+                  p.id === pendingId
+                    ? { ...p, status: "ready" as const, path: currentPath }
+                    : p
+                ),
+              }));
+              // 新しいworktreeをリストに追加（全体リフレッシュせず）
+              if (currentPath) {
+                onWorktreeCreated(currentPath, branchName);
+              }
+              break;
+
+            case "copying":
+              // copy処理中
+              setState((s) => ({
+                ...s,
+                pending: s.pending.map((p) =>
+                  p.id === pendingId
+                    ? { ...p, processingHint: "copying" as const }
+                    : p
+                ),
+              }));
+              break;
+
+            case "hooks":
+              // hooks処理中
+              setState((s) => ({
+                ...s,
+                pending: s.pending.map((p) =>
+                  p.id === pendingId
+                    ? { ...p, processingHint: "hooks" as const }
+                    : p
+                ),
+              }));
+              break;
+
+            case "completed":
+              // 全処理完了（ペンディングを削除）
+              break;
+          }
+        }
+      );
 
       if (result.success) {
-        // 成功: ペンディングを削除、リスト更新、メッセージ表示
+        // 成功: ペンディングを削除、メッセージ表示
         setState((s) => ({
           ...s,
           pending: s.pending.filter((p) => p.id !== pendingId),
         }));
-        onSuccess();
         onStatusMessage(`Created worktree: ${branchName}`, "success");
 
         // 設定を保存（次回のデフォルトとして使用）
@@ -356,7 +414,7 @@ export function useCreateWorktree({
         "error"
       );
     }
-  }, [state.dialog, onSuccess, onStatusMessage]);
+  }, [state.dialog, onWorktreeCreated, onStatusMessage]);
 
   return {
     state,

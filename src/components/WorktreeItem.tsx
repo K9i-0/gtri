@@ -9,9 +9,19 @@ interface WorktreeItemProps {
   index: number;
   prLoading?: boolean;
   isDeleting?: boolean;
+  isProcessing?: boolean; // copy/hooks処理中
+  processingHint?: "copying" | "hooks"; // 処理の種類
 }
 
-export function WorktreeItem({ worktree, isSelected, index, prLoading, isDeleting }: WorktreeItemProps) {
+export function WorktreeItem({
+  worktree,
+  isSelected,
+  index,
+  prLoading,
+  isDeleting,
+  isProcessing,
+  processingHint,
+}: WorktreeItemProps) {
   const icon = worktree.isMain ? "★" : "○";
   const iconColor = worktree.isMain ? "yellow" : "blue";
   const cursor = isSelected ? "❯" : " ";
@@ -89,6 +99,22 @@ export function WorktreeItem({ worktree, isSelected, index, prLoading, isDeletin
           <Text dimColor> {prTitle}</Text>
         </Box>
       ) : null}
+      {/* 処理中表示 - copy/hooks処理中の場合 */}
+      {isProcessing && (
+        <Box marginLeft={4}>
+          <Text color="cyan">
+            <Spinner type="dots" />
+          </Text>
+          <Text color="cyan">
+            {" "}
+            {processingHint === "copying"
+              ? "Copying..."
+              : processingHint === "hooks"
+                ? "Running hooks..."
+                : "Processing..."}
+          </Text>
+        </Box>
+      )}
     </Box>
   );
 }

@@ -1,8 +1,10 @@
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect, mock } from "bun:test";
 import {
   parseWorktreeOutput,
   validateBranchName,
   buildGtrNewCommand,
+  processStderrLine,
+  type ProgressCallback,
 } from "./gtr.ts";
 
 describe("parseWorktreeOutput", () => {
@@ -203,5 +205,80 @@ describe("buildGtrNewCommand", () => {
       "release/v1.0",
       "--yes",
     ]);
+  });
+});
+
+describe("processStderrLine", () => {
+  test("detects 'Worktree created with' pattern", () => {
+    const onProgress = mock<ProgressCallback>(() => {});
+
+    processStderrLine("Worktree created with new branch feature/test", onProgress, "/path/to/worktree");
+
+    expect(onProgress).toHaveBeenCalledWith({
+      type: "worktree_created",
+      path: "/path/to/worktree",
+    });
+  });
+
+  test("detects 'Worktree created tracking' pattern", () => {
+    const onProgress = mock<ProgressCallback>(() => {});
+
+    processStderrLine("Worktree created tracking remote branch feature/test", onProgress, "/path/to/worktree");
+
+    expect(onProgress).toHaveBeenCalledWith({
+      type: "worktree_created",
+      path: "/path/to/worktree",
+    });
+  });
+
+  test("detects 'Copying files' pattern", () => {
+    const onProgress = mock<ProgressCallback>(() => {});
+
+    processStderrLine("Copying files from .gtrconfig", onProgress, undefined);
+
+    expect(onProgress).toHaveBeenCalledWith({
+      type: "copying",
+    });
+  });
+
+  test("detects 'Copying directories' pattern", () => {
+    const onProgress = mock<ProgressCallback>(() => {});
+
+    processStderrLine("Copying directories node_modules", onProgress, undefined);
+
+    expect(onProgress).toHaveBeenCalledWith({
+      type: "copying",
+    });
+  });
+
+  test("detects 'Running hooks' pattern", () => {
+    const onProgress = mock<ProgressCallback>(() => {});
+
+    processStderrLine("Running postCreate hooks...", onProgress, undefined);
+
+    expect(onProgress).toHaveBeenCalledWith({
+      type: "hooks",
+    });
+  });
+
+  test("does not call callback for unmatched lines", () => {
+    const onProgress = mock<ProgressCallback>(() => {});
+
+    processStderrLine("Some random log message", onProgress, undefined);
+    processStderrLine("", onProgress, undefined);
+    processStderrLine("Branch feature/test is up to date", onProgress, undefined);
+
+    expect(onProgress).not.toHaveBeenCalled();
+  });
+
+  test("handles undefined detectedPath", () => {
+    const onProgress = mock<ProgressCallback>(() => {});
+
+    processStderrLine("Worktree created with new branch feature/test", onProgress, undefined);
+
+    expect(onProgress).toHaveBeenCalledWith({
+      type: "worktree_created",
+      path: undefined,
+    });
   });
 });

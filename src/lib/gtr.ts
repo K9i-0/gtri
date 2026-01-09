@@ -87,7 +87,7 @@ export async function listWorktrees(): Promise<Worktree[]> {
   return worktrees;
 }
 
-async function checkIsDirty(worktreePath: string): Promise<boolean> {
+export async function checkIsDirty(worktreePath: string): Promise<boolean> {
   const { stdout, exitCode } = await runGitCommand(
     ["status", "--porcelain"],
     worktreePath
@@ -95,7 +95,7 @@ async function checkIsDirty(worktreePath: string): Promise<boolean> {
   return exitCode === 0 && stdout.length > 0;
 }
 
-async function getShortHash(worktreePath: string): Promise<string | undefined> {
+export async function getShortHash(worktreePath: string): Promise<string | undefined> {
   const { stdout, exitCode } = await runGitCommand(
     ["rev-parse", "--short", "HEAD"],
     worktreePath
@@ -103,7 +103,7 @@ async function getShortHash(worktreePath: string): Promise<string | undefined> {
   return exitCode === 0 ? stdout : undefined;
 }
 
-async function getUpstreamBranch(branch: string): Promise<string | undefined> {
+export async function getUpstreamBranch(branch: string): Promise<string | undefined> {
   const { stdout, exitCode } = await runGitCommand([
     "config",
     "--get",
@@ -114,6 +114,26 @@ async function getUpstreamBranch(branch: string): Promise<string | undefined> {
   }
   // refs/heads/feature/hoge -> feature/hoge
   return stdout.replace(/^refs\/heads\//, "");
+}
+
+// Worktreeの詳細情報を取得
+export interface WorktreeDetails {
+  shortHash?: string;
+  upstreamBranch?: string;
+  isDirty: boolean;
+}
+
+export async function getWorktreeDetails(
+  path: string,
+  branch: string
+): Promise<WorktreeDetails> {
+  const [shortHash, upstreamBranch, isDirty] = await Promise.all([
+    getShortHash(path),
+    getUpstreamBranch(branch),
+    checkIsDirty(path),
+  ]);
+
+  return { shortHash, upstreamBranch, isDirty };
 }
 
 // Get config value with .gtrconfig fallback (mirrors gtr's cfg_default)
@@ -327,6 +347,14 @@ export interface CreateWorktreeResult {
   error?: string;
 }
 
+// ストリーミング進行状況の型
+export interface CreateWorktreeProgress {
+  type: "path_detected" | "worktree_created" | "copying" | "hooks" | "completed";
+  path?: string;
+}
+
+export type ProgressCallback = (progress: CreateWorktreeProgress) => void;
+
 // PRブランチからworktreeを作成
 export async function createWorktreeFromBranch(
   branch: string
@@ -338,6 +366,122 @@ export async function createWorktreeFromBranch(
   }
 
   return { success: false, error: stderr || "Failed to create worktree" };
+}
+
+// 共通のストリーミングコマンド実行関数（内部用）
+async function runStreamingCommand(
+  args: string[],
+  onProgress: ProgressCallback
+): Promise<CreateWorktreeResult> {
+  const proc = Bun.spawn(["git", "gtr", ...args], {
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  let detectedPath: string | undefined;
+  let stderrContent = "";
+  let stdoutContent = "";
+
+  // stdoutをストリーミングで読む（Location: /path が出力される）
+  const readStdout = async () => {
+    const reader = proc.stdout.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        stdoutContent += decoder.decode(value, { stream: true });
+
+        // 行ごとに処理
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          // "Location: /path/to/worktree" を検出
+          const locationMatch = line.match(/^Location:\s*(.+)$/);
+          if (locationMatch?.[1]) {
+            detectedPath = locationMatch[1].trim();
+            onProgress({ type: "path_detected", path: detectedPath });
+          }
+        }
+      }
+      // 残りのバッファを処理
+      if (buffer) {
+        const locationMatch = buffer.match(/^Location:\s*(.+)$/);
+        if (locationMatch?.[1]) {
+          detectedPath = locationMatch[1].trim();
+          onProgress({ type: "path_detected", path: detectedPath });
+        }
+      }
+    } catch (err) {
+      const streamError = err instanceof Error ? err.message : String(err);
+      stderrContent += `\n[Stream error: ${streamError}]`;
+    } finally {
+      reader.releaseLock();
+    }
+  };
+
+  // stderrをストリーミングで読む（ログメッセージが出力される）
+  const readStderr = async () => {
+    const reader = proc.stderr.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        stderrContent += decoder.decode(value, { stream: true });
+
+        // 行ごとに処理
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          processStderrLine(line, onProgress, detectedPath);
+        }
+      }
+      // 残りのバッファを処理
+      if (buffer) {
+        processStderrLine(buffer, onProgress, detectedPath);
+      }
+    } catch (err) {
+      const streamError = err instanceof Error ? err.message : String(err);
+      stderrContent += `\n[Stream error: ${streamError}]`;
+    } finally {
+      reader.releaseLock();
+    }
+  };
+
+  // 両方のストリームを並行して読む
+  await Promise.all([readStdout(), readStderr()]);
+
+  const exitCode = await proc.exited;
+
+  // 完了通知
+  onProgress({ type: "completed" });
+
+  if (exitCode === 0) {
+    // stdoutの最終行からパスを取得（gtr new は最後にパスを出力）
+    const finalPath = stdoutContent.trim().split("\n").pop()?.trim() || detectedPath;
+    return { success: true, path: finalPath };
+  }
+
+  return { success: false, error: stderrContent || "Failed to create worktree" };
+}
+
+// PRブランチからworktreeを作成（ストリーミング版）
+export async function createWorktreeFromBranchStreaming(
+  branch: string,
+  onProgress: ProgressCallback
+): Promise<CreateWorktreeResult> {
+  return runStreamingCommand(["new", branch], onProgress);
 }
 
 // gtr new コマンドの引数を構築
@@ -398,6 +542,41 @@ export async function createWorktreeNew(
   }
 
   return { success: false, error: stderr || "Failed to create worktree" };
+}
+
+// 新規worktreeを作成（ストリーミング版：進行状況をコールバックで通知）
+export async function createWorktreeNewStreaming(
+  branchName: string,
+  baseBranch: BaseBranchMode,
+  onProgress: ProgressCallback
+): Promise<CreateWorktreeResult> {
+  const args = buildGtrNewCommand(branchName, baseBranch);
+  return runStreamingCommand(args, onProgress);
+}
+
+// stderrの行を処理してprogressを通知（テスト用にexport）
+export function processStderrLine(
+  line: string,
+  onProgress: ProgressCallback,
+  detectedPath: string | undefined
+): void {
+  // "Worktree created with/tracking ..." を検出
+  if (
+    line.includes("Worktree created with") ||
+    line.includes("Worktree created tracking")
+  ) {
+    onProgress({ type: "worktree_created", path: detectedPath });
+  }
+
+  // "Copying files/directories..." を検出
+  if (line.includes("Copying files") || line.includes("Copying directories")) {
+    onProgress({ type: "copying" });
+  }
+
+  // "Running ... hooks..." を検出
+  if (line.includes("Running") && line.includes("hooks")) {
+    onProgress({ type: "hooks" });
+  }
 }
 
 // ブランチ名のバリデーション
