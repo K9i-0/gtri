@@ -1,7 +1,7 @@
 import { $ } from "bun";
 
 const REPO = "K9i-0/gtri";
-const CURRENT_VERSION = "1.7.0";
+const CURRENT_VERSION = "1.8.0";
 
 interface GitHubRelease {
   tag_name: string;
