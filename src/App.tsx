@@ -71,6 +71,7 @@ export function App() {
     prs,
     loading: prListLoading,
     creatingBranch,
+    pendingWorktrees: prPendingWorktrees,
     refresh: prRefresh,
     createWorktree,
   } = usePRs(worktrees, ghAvailable, refresh);
@@ -358,7 +359,7 @@ export function App() {
             selectedIndex={worktreeNav.selectedIndex}
             prLoading={prLoading}
             deletingBranch={deletingBranch}
-            pendingWorktrees={createWorktreeHook.state.pending}
+            pendingWorktrees={[...createWorktreeHook.state.pending, ...prPendingWorktrees]}
           />
         )
       ) : prListLoading ? (

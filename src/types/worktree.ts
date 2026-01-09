@@ -91,9 +91,10 @@ export interface PendingWorktree {
   branchName: string;
   baseBranch: BaseBranchMode;
   openEditor: boolean;
-  status: "creating" | "success" | "error";
+  status: "creating" | "ready" | "error";
+  processingHint?: "copying" | "hooks"; // copy/hooks処理中の表示用
   error?: string;
-  path?: string;
+  path?: string; // ready時に設定される
   startedAt: number;
 }
 

@@ -327,6 +327,14 @@ export interface CreateWorktreeResult {
   error?: string;
 }
 
+// ストリーミング進行状況の型
+export interface CreateWorktreeProgress {
+  type: "path_detected" | "worktree_created" | "copying" | "hooks" | "completed";
+  path?: string;
+}
+
+export type ProgressCallback = (progress: CreateWorktreeProgress) => void;
+
 // PRブランチからworktreeを作成
 export async function createWorktreeFromBranch(
   branch: string
@@ -338,6 +346,99 @@ export async function createWorktreeFromBranch(
   }
 
   return { success: false, error: stderr || "Failed to create worktree" };
+}
+
+// PRブランチからworktreeを作成（ストリーミング版）
+export async function createWorktreeFromBranchStreaming(
+  branch: string,
+  onProgress: ProgressCallback
+): Promise<CreateWorktreeResult> {
+  const proc = Bun.spawn(["git", "gtr", "new", branch], {
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  let detectedPath: string | undefined;
+  let stderrContent = "";
+  let stdoutContent = "";
+
+  // stdoutをストリーミングで読む
+  const readStdout = async () => {
+    const reader = proc.stdout.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        stdoutContent += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const locationMatch = line.match(/^Location:\s*(.+)$/);
+          if (locationMatch?.[1]) {
+            detectedPath = locationMatch[1].trim();
+            onProgress({ type: "path_detected", path: detectedPath });
+          }
+        }
+      }
+      if (buffer) {
+        const locationMatch = buffer.match(/^Location:\s*(.+)$/);
+        if (locationMatch?.[1]) {
+          detectedPath = locationMatch[1].trim();
+          onProgress({ type: "path_detected", path: detectedPath });
+        }
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  // stderrをストリーミングで読む
+  const readStderr = async () => {
+    const reader = proc.stderr.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        stderrContent += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          processStderrLine(line, onProgress, detectedPath);
+        }
+      }
+      if (buffer) {
+        processStderrLine(buffer, onProgress, detectedPath);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  await Promise.all([readStdout(), readStderr()]);
+
+  const exitCode = await proc.exited;
+  onProgress({ type: "completed" });
+
+  if (exitCode === 0) {
+    const finalPath = stdoutContent.trim().split("\n").pop()?.trim() || detectedPath;
+    return { success: true, path: finalPath };
+  }
+
+  return { success: false, error: stderrContent || "Failed to create worktree" };
 }
 
 // gtr new コマンドの引数を構築
@@ -398,6 +499,136 @@ export async function createWorktreeNew(
   }
 
   return { success: false, error: stderr || "Failed to create worktree" };
+}
+
+// 新規worktreeを作成（ストリーミング版：進行状況をコールバックで通知）
+export async function createWorktreeNewStreaming(
+  branchName: string,
+  baseBranch: BaseBranchMode,
+  onProgress: ProgressCallback
+): Promise<CreateWorktreeResult> {
+  const args = buildGtrNewCommand(branchName, baseBranch);
+
+  const proc = Bun.spawn(["git", "gtr", ...args], {
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  let detectedPath: string | undefined;
+  let stderrContent = "";
+  let stdoutContent = "";
+
+  // stdoutをストリーミングで読む（Location: /path が出力される）
+  const readStdout = async () => {
+    const reader = proc.stdout.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        stdoutContent += decoder.decode(value, { stream: true });
+
+        // 行ごとに処理
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          // "Location: /path/to/worktree" を検出
+          const locationMatch = line.match(/^Location:\s*(.+)$/);
+          if (locationMatch?.[1]) {
+            detectedPath = locationMatch[1].trim();
+            onProgress({ type: "path_detected", path: detectedPath });
+          }
+        }
+      }
+      // 残りのバッファを処理
+      if (buffer) {
+        const locationMatch = buffer.match(/^Location:\s*(.+)$/);
+        if (locationMatch?.[1]) {
+          detectedPath = locationMatch[1].trim();
+          onProgress({ type: "path_detected", path: detectedPath });
+        }
+      }
+    } catch {
+      // ストリーム読み取りエラーは無視
+    }
+  };
+
+  // stderrをストリーミングで読む（ログメッセージが出力される）
+  const readStderr = async () => {
+    const reader = proc.stderr.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        stderrContent += decoder.decode(value, { stream: true });
+
+        // 行ごとに処理
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          processStderrLine(line, onProgress, detectedPath);
+        }
+      }
+      // 残りのバッファを処理
+      if (buffer) {
+        processStderrLine(buffer, onProgress, detectedPath);
+      }
+    } catch {
+      // ストリーム読み取りエラーは無視
+    }
+  };
+
+  // 両方のストリームを並行して読む
+  await Promise.all([readStdout(), readStderr()]);
+
+  const exitCode = await proc.exited;
+
+  // 完了通知
+  onProgress({ type: "completed" });
+
+  if (exitCode === 0) {
+    // stdoutの最終行からパスを取得（gtr new は最後にパスを出力）
+    const finalPath = stdoutContent.trim().split("\n").pop()?.trim() || detectedPath;
+    return { success: true, path: finalPath };
+  }
+
+  return { success: false, error: stderrContent || "Failed to create worktree" };
+}
+
+// stderrの行を処理してprogressを通知
+function processStderrLine(
+  line: string,
+  onProgress: ProgressCallback,
+  detectedPath: string | undefined
+): void {
+  // "Worktree created with/tracking ..." を検出
+  if (
+    line.includes("Worktree created with") ||
+    line.includes("Worktree created tracking")
+  ) {
+    onProgress({ type: "worktree_created", path: detectedPath });
+  }
+
+  // "Copying files/directories..." を検出
+  if (line.includes("Copying files") || line.includes("Copying directories")) {
+    onProgress({ type: "copying" });
+  }
+
+  // "Running ... hooks..." を検出
+  if (line.includes("Running") && line.includes("hooks")) {
+    onProgress({ type: "hooks" });
+  }
 }
 
 // ブランチ名のバリデーション
