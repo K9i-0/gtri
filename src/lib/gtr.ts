@@ -348,12 +348,12 @@ export async function createWorktreeFromBranch(
   return { success: false, error: stderr || "Failed to create worktree" };
 }
 
-// PRブランチからworktreeを作成（ストリーミング版）
-export async function createWorktreeFromBranchStreaming(
-  branch: string,
+// 共通のストリーミングコマンド実行関数（内部用）
+async function runStreamingCommand(
+  args: string[],
   onProgress: ProgressCallback
 ): Promise<CreateWorktreeResult> {
-  const proc = Bun.spawn(["git", "gtr", "new", branch], {
+  const proc = Bun.spawn(["git", "gtr", ...args], {
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -362,7 +362,7 @@ export async function createWorktreeFromBranchStreaming(
   let stderrContent = "";
   let stdoutContent = "";
 
-  // stdoutをストリーミングで読む
+  // stdoutをストリーミングで読む（Location: /path が出力される）
   const readStdout = async () => {
     const reader = proc.stdout.getReader();
     const decoder = new TextDecoder();
@@ -376,10 +376,12 @@ export async function createWorktreeFromBranchStreaming(
         buffer += decoder.decode(value, { stream: true });
         stdoutContent += decoder.decode(value, { stream: true });
 
+        // 行ごとに処理
         const lines = buffer.split("\n");
         buffer = lines.pop() || "";
 
         for (const line of lines) {
+          // "Location: /path/to/worktree" を検出
           const locationMatch = line.match(/^Location:\s*(.+)$/);
           if (locationMatch?.[1]) {
             detectedPath = locationMatch[1].trim();
@@ -387,6 +389,7 @@ export async function createWorktreeFromBranchStreaming(
           }
         }
       }
+      // 残りのバッファを処理
       if (buffer) {
         const locationMatch = buffer.match(/^Location:\s*(.+)$/);
         if (locationMatch?.[1]) {
@@ -394,12 +397,15 @@ export async function createWorktreeFromBranchStreaming(
           onProgress({ type: "path_detected", path: detectedPath });
         }
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      const streamError = err instanceof Error ? err.message : String(err);
+      stderrContent += `\n[Stream error: ${streamError}]`;
+    } finally {
+      reader.releaseLock();
     }
   };
 
-  // stderrをストリーミングで読む
+  // stderrをストリーミングで読む（ログメッセージが出力される）
   const readStderr = async () => {
     const reader = proc.stderr.getReader();
     const decoder = new TextDecoder();
@@ -413,6 +419,7 @@ export async function createWorktreeFromBranchStreaming(
         buffer += decoder.decode(value, { stream: true });
         stderrContent += decoder.decode(value, { stream: true });
 
+        // 行ごとに処理
         const lines = buffer.split("\n");
         buffer = lines.pop() || "";
 
@@ -420,25 +427,41 @@ export async function createWorktreeFromBranchStreaming(
           processStderrLine(line, onProgress, detectedPath);
         }
       }
+      // 残りのバッファを処理
       if (buffer) {
         processStderrLine(buffer, onProgress, detectedPath);
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      const streamError = err instanceof Error ? err.message : String(err);
+      stderrContent += `\n[Stream error: ${streamError}]`;
+    } finally {
+      reader.releaseLock();
     }
   };
 
+  // 両方のストリームを並行して読む
   await Promise.all([readStdout(), readStderr()]);
 
   const exitCode = await proc.exited;
+
+  // 完了通知
   onProgress({ type: "completed" });
 
   if (exitCode === 0) {
+    // stdoutの最終行からパスを取得（gtr new は最後にパスを出力）
     const finalPath = stdoutContent.trim().split("\n").pop()?.trim() || detectedPath;
     return { success: true, path: finalPath };
   }
 
   return { success: false, error: stderrContent || "Failed to create worktree" };
+}
+
+// PRブランチからworktreeを作成（ストリーミング版）
+export async function createWorktreeFromBranchStreaming(
+  branch: string,
+  onProgress: ProgressCallback
+): Promise<CreateWorktreeResult> {
+  return runStreamingCommand(["new", branch], onProgress);
 }
 
 // gtr new コマンドの引数を構築
@@ -508,106 +531,11 @@ export async function createWorktreeNewStreaming(
   onProgress: ProgressCallback
 ): Promise<CreateWorktreeResult> {
   const args = buildGtrNewCommand(branchName, baseBranch);
-
-  const proc = Bun.spawn(["git", "gtr", ...args], {
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  let detectedPath: string | undefined;
-  let stderrContent = "";
-  let stdoutContent = "";
-
-  // stdoutをストリーミングで読む（Location: /path が出力される）
-  const readStdout = async () => {
-    const reader = proc.stdout.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        stdoutContent += decoder.decode(value, { stream: true });
-
-        // 行ごとに処理
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          // "Location: /path/to/worktree" を検出
-          const locationMatch = line.match(/^Location:\s*(.+)$/);
-          if (locationMatch?.[1]) {
-            detectedPath = locationMatch[1].trim();
-            onProgress({ type: "path_detected", path: detectedPath });
-          }
-        }
-      }
-      // 残りのバッファを処理
-      if (buffer) {
-        const locationMatch = buffer.match(/^Location:\s*(.+)$/);
-        if (locationMatch?.[1]) {
-          detectedPath = locationMatch[1].trim();
-          onProgress({ type: "path_detected", path: detectedPath });
-        }
-      }
-    } catch {
-      // ストリーム読み取りエラーは無視
-    }
-  };
-
-  // stderrをストリーミングで読む（ログメッセージが出力される）
-  const readStderr = async () => {
-    const reader = proc.stderr.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        stderrContent += decoder.decode(value, { stream: true });
-
-        // 行ごとに処理
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          processStderrLine(line, onProgress, detectedPath);
-        }
-      }
-      // 残りのバッファを処理
-      if (buffer) {
-        processStderrLine(buffer, onProgress, detectedPath);
-      }
-    } catch {
-      // ストリーム読み取りエラーは無視
-    }
-  };
-
-  // 両方のストリームを並行して読む
-  await Promise.all([readStdout(), readStderr()]);
-
-  const exitCode = await proc.exited;
-
-  // 完了通知
-  onProgress({ type: "completed" });
-
-  if (exitCode === 0) {
-    // stdoutの最終行からパスを取得（gtr new は最後にパスを出力）
-    const finalPath = stdoutContent.trim().split("\n").pop()?.trim() || detectedPath;
-    return { success: true, path: finalPath };
-  }
-
-  return { success: false, error: stderrContent || "Failed to create worktree" };
+  return runStreamingCommand(args, onProgress);
 }
 
-// stderrの行を処理してprogressを通知
-function processStderrLine(
+// stderrの行を処理してprogressを通知（テスト用にexport）
+export function processStderrLine(
   line: string,
   onProgress: ProgressCallback,
   detectedPath: string | undefined

@@ -36,10 +36,10 @@ export function PendingWorktreeItem({
     const homePath = pending.path?.replace(process.env.HOME || "", "~") || "";
     const processingText =
       pending.processingHint === "copying"
-        ? "Copy処理中..."
+        ? "Copying..."
         : pending.processingHint === "hooks"
-          ? "Hook処理中..."
-          : "処理中...";
+          ? "Running hooks..."
+          : "Processing...";
 
     return (
       <Box flexDirection="column" marginBottom={1}>

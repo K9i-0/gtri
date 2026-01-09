@@ -108,10 +108,10 @@ export function WorktreeItem({
           <Text color="cyan">
             {" "}
             {processingHint === "copying"
-              ? "Copy処理中..."
+              ? "Copying..."
               : processingHint === "hooks"
-                ? "Hook処理中..."
-                : "処理中..."}
+                ? "Running hooks..."
+                : "Processing..."}
           </Text>
         </Box>
       )}
