@@ -29,11 +29,14 @@ function TestComponent({
 }
 
 describe("usePRs", () => {
-  test("initializes with loading state when ghAvailable is false", () => {
+  test("initializes with loading state when ghAvailable is false", async () => {
     const { lastFrame } = render(<TestComponent ghAvailable={false} />);
 
+    // useEffectが実行されるのを待つ
+    await new Promise((r) => setTimeout(r, 50));
+
     const frame = lastFrame() ?? "";
-    // ghAvailableがfalseの場合、loadingはすぐにfalseになる
+    // ghAvailableがfalseの場合、loadingはfalseになる
     expect(frame).toContain("loading:false");
     expect(frame).toContain("prsCount:0");
     expect(frame).toContain("pendingCount:0");
