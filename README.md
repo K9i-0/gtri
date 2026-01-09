@@ -70,6 +70,8 @@ These settings are stored per-repository and not shared with teammates. They are
 - **Worktrees tab**: View all worktrees with PR status (including Draft indicator)
 - **Open PRs tab**: See PRs without worktrees, create worktree with `w` key
 - **Quick actions**: Launch editor (`e`), copy AI command (`a`), delete (`d`)
+- **Action select dialog**: Press `Enter` to see all available actions
+- **Early worktree access**: Open AI/editor while hooks are still running
 - **Vim/Emacs keybindings**: Navigate with j/k, Ctrl+N/P
 
 ## Installation
@@ -122,6 +124,7 @@ gtri help         # Show help
 
 | Key | Action |
 |-----|--------|
+| `Enter` | Open action select dialog |
 | `e` | Open in editor |
 | `a` | Copy AI command to clipboard |
 | `c` | Copy worktree path |
@@ -131,14 +134,19 @@ gtri help         # Show help
 
 #### Create New Worktree Dialog
 
-Press `n` to open the create worktree dialog:
+Press `n` to open the create worktree dialog. The dialog uses a **step-based flow**:
+
+1. **Branch name**: Enter the new worktree branch name
+2. **Base branch**: Select where to branch from
+3. **Options**: Toggle "Open editor" checkbox
+4. **Creating**: Watch progress as hooks run
 
 | Key | Action |
 |-----|--------|
-| `Tab` | Move to next field |
+| `Tab` | Move to next step |
 | `↑` / `↓` | Select base branch option |
 | `Space` | Toggle "Open editor" checkbox |
-| `Enter` | Create worktree |
+| `Enter` | Proceed / Create worktree |
 | `Esc` | Cancel |
 
 **Base branch options:**
@@ -146,10 +154,13 @@ Press `n` to open the create worktree dialog:
 - **From selected**: Create from the currently selected worktree's branch
 - **From current (main repo)**: Create from the branch checked out in main repo
 
+**Early worktree access**: While hooks are running (mise install, bun install, etc.), you can already press `e` to open editor or `a` to copy AI command. No need to wait for completion!
+
 ### Open PRs Tab
 
 | Key | Action |
 |-----|--------|
+| `Enter` | Open action select dialog |
 | `w` | Create worktree for selected PR |
 | `p` | Open PR in browser |
 
